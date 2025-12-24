@@ -3,12 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Paste → Markmap</title>
+  <title>Paste → Markmap (+ Mermaid)</title>
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/markmap-toolbar@0.18.12/dist/style.css">
 
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/theme/dracula.min.css">
+
   <style>
-    :root { color-scheme: light dark; }
+    :root {
+      color-scheme: light dark;
+      --mermaid-label-max: 340px;
+    }
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
     body { overflow: hidden; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
@@ -39,7 +45,7 @@
     p { margin: 0 0 10px; font-size: 13px; opacity: .8; line-height: 1.4; }
     textarea {
       width: 100%;
-      min-height: 140px;
+      min-height: 170px;
       resize: vertical;
       border-radius: 10px;
       border: 1px solid rgba(127,127,127,.35);
@@ -53,6 +59,7 @@
 
     .hidden { opacity: 0; pointer-events: none; }
     .row { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-top: 10px; }
+    .button-group { display: inline-flex; gap: 8px; align-items: center; }
     .hint { font-size: 12px; opacity: .7; }
     button {
       appearance: none;
@@ -65,32 +72,299 @@
       font-size: 12.5px;
     }
     button:hover { background: rgba(127,127,127,.08); }
+
+    #mindmap { overflow: visible; }
+    foreignObject { overflow: visible; }
+    foreignObject * { overflow: visible; }
+
+    foreignObject pre.mermaid,
+    foreignObject pre.mermaid-rendered,
+    foreignObject div.mermaid,
+    foreignObject div.mermaid-rendered {
+      margin: 6px 0 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      overflow: visible;
+      white-space: pre;
+      font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    foreignObject pre.mermaid-rendered,
+    foreignObject div.mermaid-rendered {
+      white-space: normal;
+      font: inherit;
+    }
+
+    foreignObject .mermaid-rendered svg {
+      display: block;
+      overflow: visible;
+      height: initial;
+      width: initial;
+      max-width: none;
+    }
+
+    foreignObject .mermaid-rendered .nodeLabel,
+    foreignObject .mermaid-rendered .label {
+      max-width: var(--mermaid-label-max) !important;
+      display: inline-block !important;
+      white-space: normal !important;
+      overflow-wrap: anywhere !important;
+      word-break: break-word !important;
+      line-height: 1.25 !important;
+    }
+
+    foreignObject .mermaid-rendered .edgeLabel,
+    foreignObject .mermaid-rendered .edgeLabel * {
+      white-space: normal !important;
+      overflow-wrap: anywhere !important;
+      word-break: break-word !important;
+      line-height: 1.25 !important;
+    }
+
+    #toggleEditor {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 100;
+      appearance: none;
+      border: 1px solid rgba(127,127,127,.35);
+      background: rgba(255,255,255,.92);
+      color: inherit;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      transition: all .2s ease;
+    }
+    #toggleEditor:hover {
+      background: rgba(255,255,255,1);
+      box-shadow: 0 4px 12px rgba(0,0,0,.12);
+    }
+    @media (prefers-color-scheme: dark) {
+      #toggleEditor {
+        background: rgba(40,40,43,.92);
+        box-shadow: 0 2px 8px rgba(0,0,0,.3);
+      }
+      #toggleEditor:hover {
+        background: rgba(50,50,53,1);
+        box-shadow: 0 4px 12px rgba(0,0,0,.4);
+      }
+    }
+
+    #editorPanel {
+      position: fixed;
+      left: 0;
+      top: 0;
+      height: 100vh;
+      width: 400px;
+      background: rgba(255,255,255,.95);
+      backdrop-filter: blur(10px);
+      border-right: 1px solid rgba(127,127,127,.25);
+      box-shadow: 2px 0 12px rgba(0,0,0,.08);
+      display: flex;
+      flex-direction: column;
+      z-index: 90;
+      transition: transform .3s ease;
+      transform: translateX(-100%);
+    }
+    #editorPanel.visible {
+      transform: translateX(0);
+    }
+    @media (prefers-color-scheme: dark) {
+      #editorPanel {
+        background: rgba(24,24,27,.95);
+        border-right-color: rgba(127,127,127,.3);
+        box-shadow: 2px 0 12px rgba(0,0,0,.4);
+      }
+    }
+
+    .editor-header {
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(127,127,127,.15);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .editor-header h2 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    #closeEditor {
+      appearance: none;
+      border: none;
+      background: transparent;
+      color: inherit;
+      font-size: 24px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      opacity: .6;
+      transition: all .2s ease;
+    }
+    #closeEditor:hover {
+      background: rgba(127,127,127,.12);
+      opacity: 1;
+    }
+
+    #editorTextarea {
+      flex: 1;
+      margin: 0;
+      border: none;
+      border-radius: 0;
+      padding: 16px 18px;
+      resize: none;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .CodeMirror-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .CodeMirror {
+      height: 100% !important;
+      flex: 1 !important;
+      font-size: 13px !important;
+      line-height: 1.6 !important;
+      background: transparent !important;
+      color: inherit !important;
+    }
+    .CodeMirror-gutters {
+      background: transparent !important;
+      border-right: 1px solid rgba(127,127,127,.1) !important;
+    }
+    .CodeMirror-linenumber {
+      color: rgba(127,127,127,.5) !important;
+    }
+    @media (prefers-color-scheme: dark) {
+      .CodeMirror .cm-header { color: #82aaff !important; font-weight: 600 !important; }
+      .CodeMirror .cm-strong { color: #c3e88d !important; font-weight: bold !important; }
+      .CodeMirror .cm-em { color: #c3e88d !important; font-style: italic !important; }
+      .CodeMirror .cm-link { color: #89ddff !important; }
+      .CodeMirror .cm-url { color: #89ddff !important; }
+      .CodeMirror .cm-quote { color: #697098 !important; font-style: italic !important; }
+      .CodeMirror .cm-comment { color: #697098 !important; }
+      .CodeMirror .cm-variable-2 { color: #f78c6c !important; }
+      .CodeMirror .cm-variable-3 { color: #c792ea !important; }
+      .CodeMirror-cursor { border-left-color: #f8f8f2 !important; }
+    }
+    @media (prefers-color-scheme: light) {
+      .CodeMirror .cm-header { color: #0066cc !important; font-weight: 600 !important; }
+      .CodeMirror .cm-strong { color: #008000 !important; font-weight: bold !important; }
+      .CodeMirror .cm-em { color: #008000 !important; font-style: italic !important; }
+      .CodeMirror .cm-link { color: #0066cc !important; }
+      .CodeMirror .cm-url { color: #0066cc !important; }
+      .CodeMirror .cm-quote { color: #666 !important; font-style: italic !important; }
+      .CodeMirror .cm-comment { color: #666 !important; }
+      .CodeMirror .cm-variable-2 { color: #d73a49 !important; }
+      .CodeMirror .cm-variable-3 { color: #6f42c1 !important; }
+      .CodeMirror-cursor { border-left-color: #333 !important; }
+    }
+
+    .editor-footer {
+      padding: 10px 18px;
+      border-top: 1px solid rgba(127,127,127,.15);
+      font-size: 11px;
+      opacity: .6;
+    }
+
+    #resizeHandle {
+      position: fixed;
+      left: 400px;
+      top: 0;
+      width: 6px;
+      height: 100vh;
+      cursor: col-resize;
+      z-index: 95;
+      transition: all .3s ease;
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    #resizeHandle.visible {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    #resizeHandle:hover,
+    #resizeHandle.dragging {
+      background: rgba(74,158,255,.3);
+    }
+
+    #mindmap {
+      transition: width .3s ease, margin-left .3s ease;
+    }
+    body.editor-open #mindmap {
+      width: calc(100vw - 400px);
+      margin-left: 400px;
+    }
   </style>
 </head>
 
 <body>
+  <button id="toggleEditor" type="button" aria-label="Toggle Editor">Edit</button>
+
+  <div id="editorPanel">
+    <div class="editor-header">
+      <h2>Markdown Editor</h2>
+      <button id="closeEditor" type="button" aria-label="Close Editor">×</button>
+    </div>
+    <textarea id="editorTextarea" placeholder="# Your Markdown Here
+## Add headings, lists, and Mermaid diagrams
+```mermaid
+flowchart TB
+  A[Start] --> B[End]
+```"></textarea>
+    <div class="editor-footer">
+      <span id="charCount">0 characters</span>
+    </div>
+  </div>
+
+  <div id="resizeHandle"></div>
+
   <div id="overlay" class="overlay">
     <div class="card">
-      <h1>Paste Markdown → Mindmap</h1>
-      <p>Paste into the box (or paste anywhere). Renders live. First render hides this panel.</p>
+      <h1>Paste Markdown → Mindmap (+ Mermaid)</h1>
+      <p>Markmap pass → Mermaid run inside nodes → bake → Markmap relayout → fit.</p>
       <textarea id="paste" placeholder="# Title
-## Topic
-- item
-- item"></textarea>
+## Node with Mermaid
+```mermaid
+flowchart TB
+  A[&quot;Long label that should wrap and not spill out to the right in the Mermaid node&quot;] --> B[Done]
+```"></textarea>
       <div class="row">
-        <div class="hint">Tip: start with a single top-level “# …” heading.</div>
-        <button id="example" type="button">Example</button>
+        <div class="hint">Tip: use Mermaid markdown-strings: A["long label ..."] for best wrapping.</div>
+        <div class="button-group">
+          <button id="copyPrompt" type="button">Copy Prompt</button>
+          <button id="example" type="button">Example</button>
+        </div>
       </div>
     </div>
   </div>
 
   <svg id="mindmap"></svg>
 
-  <!-- libs -->
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/addon/mode/overlay.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/xml/xml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/markdown/markdown.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/gfm/gfm.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.18.12"></script>
   <script src="https://cdn.jsdelivr.net/npm/markmap-view@0.18.12/dist/browser/index.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/markmap-toolbar@0.18.12/dist/index.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/turndown@7.2.0/dist/turndown.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11.12.2/dist/mermaid.min.js"></script>
 
   <script>
     (() => {
@@ -99,17 +373,86 @@
       const svgEl = $("#mindmap");
       const overlayEl = $("#overlay");
       const pasteEl = $("#paste");
+      const copyPromptBtn = $("#copyPrompt");
       const exampleBtn = $("#example");
 
+      const toggleEditorBtn = $("#toggleEditor");
+      const editorPanel = $("#editorPanel");
+      const closeEditorBtn = $("#closeEditor");
+      const editorTextarea = $("#editorTextarea");
+      const resizeHandle = $("#resizeHandle");
+      const charCount = $("#charCount");
+
+      let editorVisible = localStorage.getItem("editorVisible") === "true" || false;
+      let editorWidth = parseInt(localStorage.getItem("editorWidth") || "400");
+      let isResizing = false;
+      let codeMirror = null;
+      let codeMirrorInitialized = false;
+      let pendingEditorFocus = false;
+
       const mmapi = window.markmap;
-      if (!mmapi?.Transformer || !mmapi?.Markmap) {
-        alert("Markmap failed to load (check DevTools → Network).");
-        return;
-      }
+      if (!mmapi?.Transformer || !mmapi?.Markmap) { alert("Markmap failed to load."); return; }
+      if (!window.TurndownService) { alert("Turndown failed to load."); return; }
+      if (!window.mermaid?.run) { alert("Mermaid failed to load."); return; }
 
       const { Transformer, Markmap, Toolbar } = mmapi;
-
       const transformer = new Transformer();
+
+      const escapeHtml = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;" }[c]));
+      const promptMd = [
+        "Act as a thought and learning partner. Generate a high-density Markdown summary of the input optimized for Markmap + Mermaid visualization. Think very hard as if your life depended on it.",
+        "",
+        "",
+        "### Formatting Constraints (STRICT)",
+        "",
+        "1. Container: Wrap entire response in quadruple backticks (````markdown [content] ````) to allow clean copy-pasting.",
+        "",
+        "2. Visual Elements (Optional/Context-Dependent):",
+        "",
+        "   - Mermaid: Use Flowcharts for pipelines, Sequence Diagrams for loops, and State Diagrams for logic transitions.",
+        "       - Use Mermaid markdown-strings: A[\"long label ...\"] for best wrapping.",
+        "       - Use </br> for newlines inside labels",
+        "       - Put mermaid diagrams inside markdown code blocks starting with ```mermaid",
+        "",
+        "   - Tables: Use for multi-variable comparisons",
+        "",
+        "   - Use latex for math formuals in markdown",
+        "",
+        "   - Checklists: Use Task Lists (- [ ]) for feature sets or benchmarks.",
+        "",
+        "   - HTML (e.g., images) as it is supported by Markmap https://markmap.js.org/docs/markmap",
+        "",
+        "   - Code blocks with formatting",
+        "",
+        "   - Hyperlink references to other docs, video timestamps, etc.",
+        "",
+        "   - embedded images with appropriate width and height control",
+        "",
+        "   - Use emojis and special chars",
+        "",
+        "   - Include ascii art when other token efficient forms are incapable",
+        "",
+        "   - Embed the visual elements throughout the markdown where appropriate. Avoid skewing all visuals into a single node",
+        "",
+        "",
+        "### Content & Style",
+        "",
+        "1. Tone: Concise. Sacrifice grammar for density.",
+        "",
+        "2. Structure: Use hierarchical headings (##, ###) and list indentation to define the mindmap nodes."
+      ].join("\n");
+      const md = transformer.md;
+      const defaultFence =
+        md.renderer.rules.fence ||
+        ((tokens, idx, options, env, self) => self.renderToken(tokens, idx, options));
+
+      md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+        const t = tokens[idx];
+        const lang = (t.info || "").trim().split(/\s+/)[0].toLowerCase();
+        if (lang === "mermaid") return `<pre class="mermaid">${escapeHtml(t.content || "")}</pre>`;
+        return defaultFence(tokens, idx, options, env, self);
+      };
+
       const mm = Markmap.create(svgEl);
 
       const toolbar = new Toolbar();
@@ -120,68 +463,553 @@
       toolbarEl.style.bottom = "16px";
       document.body.appendChild(toolbarEl);
 
+      function setEditorWidth(width) {
+        const minWidth = 250;
+        const maxWidth = window.innerWidth - 200;
+        editorWidth = Math.max(minWidth, Math.min(maxWidth, width));
+
+        editorPanel.style.width = editorWidth + "px";
+        resizeHandle.style.left = editorWidth + "px";
+
+        if (editorVisible) {
+          svgEl.style.width = `calc(100vw - ${editorWidth}px)`;
+          svgEl.style.marginLeft = editorWidth + "px";
+        }
+
+        localStorage.setItem("editorWidth", editorWidth);
+      }
+
+      function focusEditor() {
+        if (codeMirror) {
+          codeMirror.refresh();
+          codeMirror.focus();
+        } else {
+          editorTextarea.focus();
+        }
+      }
+
+      function scheduleEditorFocus() {
+        if (!editorVisible) return;
+        setTimeout(() => focusEditor(), 360);
+      }
+
+      function toggleEditor(show) {
+        editorVisible = show !== undefined ? show : !editorVisible;
+
+        if (editorVisible) {
+          editorPanel.classList.add("visible");
+          resizeHandle.classList.add("visible");
+          document.body.classList.add("editor-open");
+          setEditorWidth(editorWidth);
+          pendingEditorFocus = true;
+
+          toggleEditorBtn.style.left = `${editorWidth + 16}px`;
+
+          if (!codeMirrorInitialized) {
+            initCodeMirror();
+            if (pasteEl.value) {
+              setEditorValue(pasteEl.value);
+            }
+          } else {
+            if (pasteEl.value && !getEditorValue()) {
+              setEditorValue(pasteEl.value);
+            }
+          }
+
+          if (codeMirrorInitialized) {
+            pendingEditorFocus = false;
+            scheduleEditorFocus();
+          }
+        } else {
+          editorPanel.classList.remove("visible");
+          resizeHandle.classList.remove("visible");
+          document.body.classList.remove("editor-open");
+          svgEl.style.width = "100vw";
+          svgEl.style.marginLeft = "0";
+
+          toggleEditorBtn.style.left = "16px";
+        }
+
+        localStorage.setItem("editorVisible", editorVisible);
+
+        setTimeout(() => mm.fit(), 320);
+      }
+
+      function updateCharCount() {
+        const count = codeMirror ? codeMirror.getValue().length : editorTextarea.value.length;
+        charCount.textContent = `${count} character${count !== 1 ? 's' : ''}`;
+      }
+
+      function getEditorValue() {
+        return codeMirror ? codeMirror.getValue() : editorTextarea.value;
+      }
+
+      function setEditorValue(value) {
+        if (codeMirror) {
+          codeMirror.setValue(value || '');
+        } else {
+          editorTextarea.value = value || '';
+        }
+        updateCharCount();
+      }
+
+      let editorTimeout = null;
+      const handleEditorInput = () => {
+        updateCharCount();
+        clearTimeout(editorTimeout);
+        editorTimeout = setTimeout(() => {
+          const value = getEditorValue();
+          render(value);
+          pasteEl.value = value;
+        }, 50);
+      };
+
+      function initCodeMirror() {
+        if (codeMirrorInitialized || !window.CodeMirror) return;
+
+        try {
+          codeMirror = CodeMirror.fromTextArea(editorTextarea, {
+            mode: 'gfm',
+            lineNumbers: true,
+            lineWrapping: true,
+            theme: 'default',
+            placeholder: editorTextarea.placeholder,
+            autofocus: false,
+            tabSize: 2,
+            indentUnit: 2,
+            extraKeys: {
+              "Ctrl-E": () => toggleEditor(),
+              "Cmd-E": () => toggleEditor(),
+              "Esc": () => { if (editorVisible) toggleEditor(false); }
+            }
+          });
+
+          if (codeMirror) {
+            codeMirror.on("change", handleEditorInput);
+
+            codeMirror.on("paste", async (instance, event) => {
+              event.preventDefault();
+              const mdText = await getPasteMarkdown(event.clipboardData);
+              if (mdText) instance.replaceSelection(mdText, "around");
+            });
+
+            codeMirrorInitialized = true;
+            if (editorVisible && pendingEditorFocus) {
+              pendingEditorFocus = false;
+              scheduleEditorFocus();
+            }
+          }
+        } catch (e) {
+          console.warn("CodeMirror initialization failed, using plain textarea:", e);
+          codeMirror = null;
+          codeMirrorInitialized = false;
+          if (editorVisible && pendingEditorFocus) {
+            pendingEditorFocus = false;
+            setTimeout(() => editorTextarea.focus(), 0);
+          }
+        }
+      }
+
+      function fallbackCopyText(text) {
+        const temp = document.createElement("textarea");
+        temp.value = text;
+        temp.setAttribute("readonly", "");
+        temp.style.position = "absolute";
+        temp.style.left = "-9999px";
+        document.body.appendChild(temp);
+        temp.select();
+        try { document.execCommand("copy"); } catch {}
+        document.body.removeChild(temp);
+      }
+
+      async function copyPromptToClipboard() {
+        try {
+          await navigator.clipboard.writeText(promptMd);
+          return true;
+        } catch {
+          fallbackCopyText(promptMd);
+          return false;
+        }
+      }
+
+      copyPromptBtn.addEventListener("click", async () => {
+        const original = copyPromptBtn.textContent;
+        const ok = await copyPromptToClipboard();
+        copyPromptBtn.textContent = ok ? "Copied" : "Copied (fallback)";
+        setTimeout(() => { copyPromptBtn.textContent = original; }, 1200);
+      });
+
+      toggleEditorBtn.addEventListener("click", () => toggleEditor());
+      closeEditorBtn.addEventListener("click", () => toggleEditor(false));
+
+      resizeHandle.addEventListener("mousedown", (e) => {
+        isResizing = true;
+        resizeHandle.classList.add("dragging");
+        document.body.style.cursor = "col-resize";
+        document.body.style.userSelect = "none";
+        e.preventDefault();
+      });
+
+      document.addEventListener("mousemove", (e) => {
+        if (!isResizing) return;
+        setEditorWidth(e.clientX);
+        mm.fit();
+      });
+
+      document.addEventListener("mouseup", () => {
+        if (isResizing) {
+          isResizing = false;
+          resizeHandle.classList.remove("dragging");
+          document.body.style.cursor = "";
+          document.body.style.userSelect = "";
+        }
+      });
+
+      editorTextarea.addEventListener("input", () => {
+        if (!codeMirrorInitialized) {
+          handleEditorInput();
+        }
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === "e") {
+          e.preventDefault();
+          toggleEditor();
+        }
+        if (e.key === "Escape" && editorVisible) {
+          toggleEditor(false);
+        }
+      });
+
+      setEditorWidth(editorWidth);
+
+      const turndownService = new window.TurndownService({
+        headingStyle: "atx",
+        codeBlockStyle: "fenced",
+        bulletListMarker: "-"
+      });
+
+      function markmapNormalize(mdText) {
+        let s = (mdText || "").replace(/\r\n/g, "\n");
+        s = s
+          .replace(/^(.+)\n=+\s*$/gm, (_, t) => `# ${t.trim()}`)
+          .replace(/^(.+)\n-+\s*$/gm, (_, t) => `## ${t.trim()}`);
+
+        const lines = s.split("\n");
+        const out = [];
+        for (let line of lines) {
+          const m = line.match(/^(\s*)-\s+\*\*(.+?)\*\*\s*$/);
+          if (m) {
+            const indentLevel = Math.floor(m[1].length / 2);
+            const headingLevel = Math.min(indentLevel + 2, 6);
+            out.push("#".repeat(headingLevel) + " " + m[2]);
+          } else out.push(line);
+        }
+        s = out.join("\n");
+
+        const fixedLines = s.split("\n");
+        const result = [];
+        let lastHeadingLevel = 3;
+        let needsSeparatorForList = false;
+
+        for (let i = 0; i < fixedLines.length; i++) {
+          const line = fixedLines[i];
+          const nextLine = fixedLines[i + 1] || '';
+
+          const headingMatch = line.match(/^(#{1,6})\s+/);
+          if (headingMatch) {
+            lastHeadingLevel = headingMatch[1].length;
+
+            let hasListAfter = false;
+            let hasMermaidAfter = false;
+
+            for (let j = i + 1; j < fixedLines.length; j++) {
+              const checkLine = fixedLines[j].trim();
+              if (checkLine === '') continue;
+
+              if (checkLine.match(/^[-*+]\s+/)) {
+                hasListAfter = true;
+              } else if (checkLine === '```mermaid' && hasListAfter) {
+                hasMermaidAfter = true;
+                break;
+              } else if (checkLine.match(/^#{1,6}\s+/)) {
+                break;
+              }
+            }
+
+            result.push(line);
+
+            if (hasListAfter && hasMermaidAfter) {
+              needsSeparatorForList = true;
+              result.push('');
+              const separatorLevel = Math.min(lastHeadingLevel + 1, 6);
+              result.push('#'.repeat(separatorLevel) + ' Details');
+              result.push('');
+            } else if (hasListAfter) {
+              if (nextLine.match(/^[-*+]\s+/)) {
+                result.push('');
+              }
+            }
+            continue;
+          }
+
+          const listMatch = line.match(/^(\s*)[-*+]\s+/);
+          if (listMatch && needsSeparatorForList) {
+            result.push(line);
+            continue;
+          }
+
+          if (line.trim() === '```mermaid' && needsSeparatorForList) {
+            const separatorLevel = Math.min(lastHeadingLevel + 1, 6);
+            result.push('');
+            result.push('#'.repeat(separatorLevel) + ' Diagram');
+            result.push('');
+            needsSeparatorForList = false;
+          }
+
+          result.push(line);
+        }
+
+        s = result.join("\n");
+        return s.replace(/\n{3,}/g, "\n\n").trim() + "\n";
+      }
+
       let renderedOnce = false;
       let pending = 0;
+
+      const nextFrame = () => new Promise((r) => requestAnimationFrame(r));
+      const nextFrames = async (n) => { for (let i = 0; i < n; i++) await nextFrame(); };
 
       function hideOverlayOnce() {
         if (!renderedOnce) {
           overlayEl.classList.add("hidden");
           renderedOnce = true;
+
+          if (pasteEl.value) {
+            setEditorValue(pasteEl.value);
+          }
         }
       }
 
-      async function render(md) {
-        const text = (md || "").trim();
+      let mermaidInitialized = false;
+      function ensureMermaidInit() {
+        if (mermaidInitialized) return;
+        window.mermaid.initialize({
+          startOnLoad: false,
+          wrap: true,
+          wrapPadding: 8,
+          markdownAutoWrap: true,
+          htmlLabels: true,
+        });
+        mermaidInitialized = true;
+      }
+
+      function fixMermaidSvgClipping(scopeEl) {
+        const svgs = scopeEl.querySelectorAll('foreignObject .mermaid-rendered svg, foreignObject svg[id^="mermaid-"]');
+        for (const svg of svgs) {
+          svg.style.overflow = "visible";
+          try {
+            const bbox = svg.getBBox();
+            const pad = 8;
+            const vb = svg.getAttribute("viewBox");
+            if (!vb) {
+              svg.setAttribute("viewBox", `${bbox.x-pad} ${bbox.y-pad} ${bbox.width+2*pad} ${bbox.height+2*pad}`);
+            } else {
+              const parts = vb.split(/\s+/).map(Number);
+              if (parts.length === 4 && parts.every(Number.isFinite)) {
+                const [x,y,w,h] = parts;
+                svg.setAttribute("viewBox", `${x-pad} ${y-pad} ${w+2*pad} ${h+2*pad}`);
+              }
+            }
+            const wantW = Math.ceil(bbox.width + 2*pad);
+            const wantH = Math.ceil(bbox.height + 2*pad);
+            const wAttr = parseFloat(svg.getAttribute("width") || "");
+            const hAttr = parseFloat(svg.getAttribute("height") || "");
+            if (Number.isFinite(wAttr) && wAttr < wantW) svg.setAttribute("width", String(wantW));
+            if (Number.isFinite(hAttr) && hAttr < wantH) svg.setAttribute("height", String(wantH));
+          } catch {}
+        }
+      }
+
+      async function renderMermaidInsideMarkmap(currentToken) {
+        ensureMermaidInit();
+
+        const nodes = Array.from(svgEl.querySelectorAll("foreignObject pre.mermaid, foreignObject div.mermaid"))
+          .filter((el) => !el.dataset.mermaidRendered);
+
+        if (!nodes.length) return false;
+
+        try { if (document.fonts?.ready) await document.fonts.ready; } catch {}
+        if (currentToken !== pending) return false;
+
+        await window.mermaid.run({ nodes, suppressErrors: true });
+
+        for (const el of nodes) {
+          el.dataset.mermaidRendered = "1";
+          el.classList.remove("mermaid");
+          el.classList.add("mermaid-rendered");
+        }
+
+        await nextFrames(1);
+        fixMermaidSvgClipping(svgEl);
+
+        return true;
+      }
+
+      function bakeForeignObjectHTMLIntoData(node) {
+        const found = mm.findElement(node);
+        if (found?.g) {
+          const fo = found.g.querySelector("foreignObject");
+          const container = fo?.firstElementChild;
+          if (container) node.content = container.innerHTML;
+        }
+        if (node.children) for (const c of node.children) bakeForeignObjectHTMLIntoData(c);
+      }
+
+      async function render(mdText) {
+        const text = (mdText || "").trim();
         if (!text) return;
 
         const token = ++pending;
         try {
-          const { root } = transformer.transform(text);
+          const normalized = markmapNormalize(text);
+          const { root } = transformer.transform(normalized);
+
           await mm.setData(root);
-          if (token !== pending) return; // drop stale renders
+
+          await nextFrames(2);
+          if (token !== pending) return;
+
           mm.fit();
+          await nextFrames(1);
+          if (token !== pending) return;
+
+          const hadMermaid = await renderMermaidInsideMarkmap(token);
+          if (token !== pending) return;
+
+          if (hadMermaid) {
+            await nextFrames(2);
+            if (token !== pending) return;
+
+            bakeForeignObjectHTMLIntoData(mm.state.data);
+            await mm.renderData(mm.state.data);
+
+            await nextFrames(2);
+            if (token !== pending) return;
+
+            mm.fit();
+          }
+
           hideOverlayOnce();
         } catch (e) {
-          console.error(e);
+          console.error("Render failed:", e);
           alert("Render error: " + (e?.message || String(e)));
         }
       }
 
-      // Debounced typing
+      function looksLikeMarkdown(s) {
+        const t = (s || "").trim();
+        if (!t) return false;
+        return (
+          /(^|\n)\s{0,3}#{1,6}\s+\S/.test(t) ||
+          /(^|\n)\s{0,3}[-*+]\s+\S/.test(t) ||
+          /(^|\n)\s{0,3}\d+\.\s+\S/.test(t)
+        );
+      }
+
+      function clipboardToMarkmapMdFromDataTransfer(dt) {
+        const html = dt?.getData("text/html") || "";
+        const plain = dt?.getData("text/plain") || "";
+
+        if (looksLikeMarkdown(plain)) return markmapNormalize(plain);
+
+        if (html && html.trim()) {
+          try {
+            const converted = turndownService.turndown(html);
+            const normalized = markmapNormalize(converted);
+            if (normalized.trim()) return normalized;
+          } catch (e) {
+            console.warn("Turndown failed; fallback to plain", e);
+          }
+        }
+        return markmapNormalize(plain);
+      }
+
+      async function getPasteMarkdown(dataTransfer, fallbackOnly = false) {
+        if (!fallbackOnly && dataTransfer) {
+          const mdText = clipboardToMarkmapMdFromDataTransfer(dataTransfer);
+          if (mdText.trim()) return mdText;
+        }
+        return markmapNormalize(await getPasteTextFallback());
+      }
+
+      async function getPasteTextFallback() {
+        try { return (await navigator.clipboard.readText()) || ""; }
+        catch { return ""; }
+      }
+
+      function applyPasteText(mdText, replaceAll = true) {
+        if (!mdText.trim()) return;
+
+        if (replaceAll) {
+          pasteEl.value = mdText;
+        } else {
+          const start = pasteEl.selectionStart ?? pasteEl.value.length;
+          const end = pasteEl.selectionEnd ?? start;
+          try { pasteEl.setRangeText(mdText, start, end, "end"); }
+          catch { pasteEl.value += mdText; }
+        }
+        queueMicrotask(() => render(pasteEl.value));
+      }
+
+      pasteEl.addEventListener("paste", async (ev) => {
+        ev.preventDefault();
+        const mdText = await getPasteMarkdown(ev.clipboardData);
+        applyPasteText(mdText, true);
+        pasteEl.focus();
+      });
+
+      pasteEl.addEventListener("beforeinput", async (ev) => {
+        if (ev.inputType !== "insertFromPaste") return;
+        ev.preventDefault();
+        const mdText = await getPasteMarkdown(null, true);
+        applyPasteText(mdText, true);
+        pasteEl.focus();
+      });
+
+      document.addEventListener("paste", async (ev) => {
+        if (ev.target === pasteEl) return;
+        if (editorPanel.contains(ev.target)) return;
+        ev.preventDefault();
+        const mdText = await getPasteMarkdown(ev.clipboardData);
+        applyPasteText(mdText, true);
+        pasteEl.focus();
+      }, true);
+
       let t = null;
       pasteEl.addEventListener("input", () => {
         clearTimeout(t);
-        t = setTimeout(() => render(pasteEl.value), 40);
+        t = setTimeout(() => render(pasteEl.value), 50);
       });
 
-      // Paste anywhere (desktop). If target is textarea, let it happen naturally.
-      document.addEventListener("paste", (ev) => {
-        if (ev.target === pasteEl) return;
-        const md = ev.clipboardData?.getData("text/plain") || "";
-        if (!md.trim()) return;
-        ev.preventDefault();
-        pasteEl.value = md;
-        render(md);
-      });
-
-      // Example
       exampleBtn.addEventListener("click", () => {
-        const md = [
-          "# Paste → Markmap",
-          "## Inputs",
-          "- paste anywhere",
-          "- or type in the box",
-          "## Actions",
-          "- auto-render",
-          "- auto-fit",
+        const mdText = [
+          "# Markmap + Mermaid (Wrap + No Spill Test)",
+          "## A Mermaid node with long text",
+          "```mermaid",
+          "flowchart TB",
+          "  A[\"This is a very long label containing a URL-like token https://example.com/some/really/really/really/long/path and also regular prose so we can verify wrapping and token breaking inside the node.\"] --> B[\"Another long label that should wrap rather than spilling out to the right side of the shape.\"]",
+          "  B --> C[\"Done\"]",
+          "```",
           "## Notes",
-          "- headings + lists work best",
+          "- Wrapping: mermaid config wrap + CSS max-width for labels",
+          "- No clipping: SVG overflow visible + padded viewBox via getBBox()",
         ].join("\n");
-        pasteEl.value = md;
-        render(md);
+        pasteEl.value = mdText;
+        render(mdText);
       });
 
-      // Optional: focus input on load
+      window.addEventListener("resize", () => mm.fit());
       window.addEventListener("load", () => pasteEl.focus());
     })();
   </script>
