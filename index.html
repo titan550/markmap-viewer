@@ -9,6 +9,7 @@
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/theme/dracula.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/addon/dialog/dialog.min.css">
 
   <style>
     :root {
@@ -257,7 +258,11 @@
       .CodeMirror .cm-comment { color: #697098 !important; }
       .CodeMirror .cm-variable-2 { color: #f78c6c !important; }
       .CodeMirror .cm-variable-3 { color: #c792ea !important; }
-      .CodeMirror-cursor { border-left-color: #f8f8f2 !important; }
+    .CodeMirror-cursor { border-left-color: #f8f8f2 !important; }
+    .CodeMirror-dialog {
+      z-index: 30;
+      background: rgba(0,0,0,.35);
+    }
     }
     @media (prefers-color-scheme: light) {
       .CodeMirror .cm-header { color: #0066cc !important; font-weight: 600 !important; }
@@ -269,7 +274,11 @@
       .CodeMirror .cm-comment { color: #666 !important; }
       .CodeMirror .cm-variable-2 { color: #d73a49 !important; }
       .CodeMirror .cm-variable-3 { color: #6f42c1 !important; }
-      .CodeMirror-cursor { border-left-color: #333 !important; }
+    .CodeMirror-cursor { border-left-color: #333 !important; }
+    .CodeMirror-dialog {
+      z-index: 30;
+      background: rgba(255,255,255,.9);
+    }
     }
 
     .editor-footer {
@@ -302,6 +311,7 @@
 
     #mindmap {
       transition: width .3s ease, margin-left .3s ease;
+      touch-action: none;
     }
     body.editor-open #mindmap {
       width: calc(100vw - 400px);
@@ -342,7 +352,7 @@ flowchart TB
   A[&quot;Long label that should wrap and not spill out to the right in the Mermaid node&quot;] --> B[Done]
 ```"></textarea>
       <div class="row">
-        <div class="hint">Tip: use Mermaid markdown-strings: A["long label ..."] for best wrapping.</div>
+        <div class="hint">Copy Markmap-formatted text here.</div>
         <div class="button-group">
           <button id="copyPrompt" type="button">Copy Prompt</button>
           <button id="example" type="button">Example</button>
@@ -355,6 +365,9 @@ flowchart TB
 
   <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/addon/mode/overlay.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/addon/dialog/dialog.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/addon/search/searchcursor.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/addon/search/search.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/xml/xml.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/markdown/markdown.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/gfm/gfm.min.js"></script>
@@ -403,22 +416,21 @@ flowchart TB
         "Act as a thought and learning partner. Generate a high-density Markdown summary of the input optimized for Markmap + Mermaid visualization. Think very hard as if your life depended on it.",
         "",
         "",
-        "### Formatting Constraints (STRICT)",
+        "### Formatting Constraints",
         "",
         "1. Container: Wrap entire response in quadruple backticks (````markdown [content] ````) to allow clean copy-pasting.",
         "",
         "2. Visual Elements (Optional/Context-Dependent):",
         "",
-        "   - Mermaid: Use Flowcharts for pipelines, Sequence Diagrams for loops, and State Diagrams for logic transitions.",
+        "   - Mermaid diagram and charts",
         "       - Use Mermaid markdown-strings: A[\"long label ...\"] for best wrapping.",
         "       - Use </br> for newlines inside labels",
         "       - Put mermaid diagrams inside markdown code blocks starting with ```mermaid",
+        "       - In flowcharts: prefer LR over TB and always include a START and END block",
         "",
         "   - Tables: Use for multi-variable comparisons",
         "",
-        "   - Use latex for math formuals in markdown",
-        "",
-        "   - Checklists: Use Task Lists (- [ ]) for feature sets or benchmarks.",
+        "   - Math: Use KaTex in markdown. Replace the \\sqrt{x} command with a fractional exponent (x)^{1/2}. Using sqrt is forbidden due to markmap bug.",
         "",
         "   - HTML (e.g., images) as it is supported by Markmap https://markmap.js.org/docs/markmap",
         "",
@@ -426,9 +438,9 @@ flowchart TB
         "",
         "   - Hyperlink references to other docs, video timestamps, etc.",
         "",
-        "   - embedded images with appropriate width and height control",
+        "   - Embedded images with appropriate width and height control",
         "",
-        "   - Use emojis and special chars",
+        "   - Use emojis and special chars for visual aid",
         "",
         "   - Include ascii art when other token efficient forms are incapable",
         "",
@@ -439,7 +451,9 @@ flowchart TB
         "",
         "1. Tone: Concise. Sacrifice grammar for density.",
         "",
-        "2. Structure: Use hierarchical headings (##, ###) and list indentation to define the mindmap nodes."
+        "2. Structure: Use hierarchical headings (##, ###) to define the mindmap nodes. Don't mix headings and lists in the same hierarchy.",
+        "",
+        "3. Note that Markmap IGNORES paragraph text (i.e., not list, heading, mermaid, table or code block, etc)"
       ].join("\n");
       const md = transformer.md;
       const defaultFence =
@@ -457,6 +471,15 @@ flowchart TB
 
       const toolbar = new Toolbar();
       toolbar.attach(mm);
+
+      const shouldBlockWheel = (target) =>
+        (target === svgEl || svgEl.contains(target)) &&
+        !editorPanel.contains(target) &&
+        !overlayEl.contains(target);
+
+      svgEl.addEventListener("wheel", (e) => {
+        if (shouldBlockWheel(e.target)) e.preventDefault();
+      }, { passive: false });
       const toolbarEl = toolbar.render();
       toolbarEl.style.position = "absolute";
       toolbarEl.style.right = "16px";
@@ -580,6 +603,12 @@ flowchart TB
             extraKeys: {
               "Ctrl-E": () => toggleEditor(),
               "Cmd-E": () => toggleEditor(),
+              "Ctrl-F": "find",
+              "Cmd-F": "find",
+              "Ctrl-G": "findNext",
+              "Cmd-G": "findNext",
+              "Shift-Ctrl-G": "findPrev",
+              "Shift-Cmd-G": "findPrev",
               "Esc": () => { if (editorVisible) toggleEditor(false); }
             }
           });
@@ -672,6 +701,14 @@ flowchart TB
       });
 
       document.addEventListener("keydown", (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
+          if (editorVisible && codeMirrorInitialized && codeMirror) {
+            e.preventDefault();
+            codeMirror.focus();
+            codeMirror.execCommand("find");
+            return;
+          }
+        }
         if ((e.ctrlKey || e.metaKey) && e.key === "e") {
           e.preventDefault();
           toggleEditor();
@@ -691,21 +728,13 @@ flowchart TB
 
       function markmapNormalize(mdText) {
         let s = (mdText || "").replace(/\r\n/g, "\n");
+        const trimmed = s.trim();
+        const fenced = trimmed.match(/^```(?:markdown|md)\s*\n([\s\S]*?)\n```$/);
+        if (fenced) s = fenced[1];
         s = s
           .replace(/^(.+)\n=+\s*$/gm, (_, t) => `# ${t.trim()}`)
           .replace(/^(.+)\n-+\s*$/gm, (_, t) => `## ${t.trim()}`);
 
-        const lines = s.split("\n");
-        const out = [];
-        for (let line of lines) {
-          const m = line.match(/^(\s*)-\s+\*\*(.+?)\*\*\s*$/);
-          if (m) {
-            const indentLevel = Math.floor(m[1].length / 2);
-            const headingLevel = Math.min(indentLevel + 2, 6);
-            out.push("#".repeat(headingLevel) + " " + m[2]);
-          } else out.push(line);
-        }
-        s = out.join("\n");
 
         const fixedLines = s.split("\n");
         const result = [];
@@ -776,6 +805,7 @@ flowchart TB
 
       let renderedOnce = false;
       let pending = 0;
+      let lastEditorSearch = "";
 
       const nextFrame = () => new Promise((r) => requestAnimationFrame(r));
       const nextFrames = async (n) => { for (let i = 0; i < n; i++) await nextFrame(); };
@@ -834,8 +864,14 @@ flowchart TB
       async function renderMermaidInsideMarkmap(currentToken) {
         ensureMermaidInit();
 
-        const nodes = Array.from(svgEl.querySelectorAll("foreignObject pre.mermaid, foreignObject div.mermaid"))
-          .filter((el) => !el.dataset.mermaidRendered);
+        const rendered = svgEl.querySelectorAll("[data-mermaid-rendered]");
+        for (const el of rendered) {
+          delete el.dataset.mermaidRendered;
+          el.classList.remove("mermaid-rendered");
+          if (!el.classList.contains("mermaid")) el.classList.add("mermaid");
+        }
+
+        const nodes = Array.from(svgEl.querySelectorAll("foreignObject pre.mermaid, foreignObject div.mermaid"));
 
         if (!nodes.length) return false;
 
