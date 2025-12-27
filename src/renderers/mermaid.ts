@@ -7,7 +7,9 @@ let mermaidId = 0;
 
 function ensureMermaidInit() {
   if (mermaidInitialized) return;
-  window.mermaid.initialize({
+  const mermaid = window.mermaid;
+  if (!mermaid) throw new Error("Mermaid is not available");
+  mermaid.initialize({
     startOnLoad: false,
     htmlLabels: false,
     markdownAutoWrap: true,
@@ -26,6 +28,8 @@ export const mermaidRenderer: Renderer = {
   render: async (src) => {
     ensureMermaidInit();
     try { if (document.fonts?.ready) await document.fonts.ready; } catch { /* ignore font readiness errors */ }
+    const mermaid = window.mermaid;
+    if (!mermaid?.render) throw new Error("Mermaid is not available");
     const isERDiagram = /^\s*erDiagram\b/m.test(src);
     const cleaned = sanitizeMermaidSourceLabels(src, {
       lineBreak: "\n",
@@ -36,7 +40,7 @@ export const mermaidRenderer: Renderer = {
       wrapEdgeLabels: !isERDiagram,
     });
 
-    const result = await window.mermaid.render(`mermaid-pre-${++mermaidId}`, cleaned);
+    const result = await mermaid.render(`mermaid-pre-${++mermaidId}`, cleaned);
     let svg = result?.svg || "";
     if (!svg) throw new Error("Mermaid output missing");
     if (isERDiagram) {

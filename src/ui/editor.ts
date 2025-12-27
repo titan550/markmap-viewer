@@ -173,7 +173,10 @@ export function setupEditor(deps: EditorDeps): EditorApi {
       if (codeMirror) {
         codeMirror.on("change", handleEditorInput);
 
-        codeMirror.on("paste", async (instance: CodeMirrorEditor, event: ClipboardEvent) => {
+        codeMirror.on("paste", async (...args: unknown[]) => {
+          const instance = args[0] as CodeMirrorEditor | undefined;
+          const event = args[1] as ClipboardEvent | undefined;
+          if (!instance || !event) return;
           event.preventDefault();
           const mdText = await getPasteMarkdown(event.clipboardData);
           if (mdText) instance.replaceSelection(mdText, "around");

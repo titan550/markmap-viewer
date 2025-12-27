@@ -34,7 +34,9 @@ function mockCanvas() {
 
 describe("renderInlineMarkdown", () => {
   it("escapes text but keeps images", () => {
-    const html = renderInlineMarkdown("<img src=\"x\"> &", { md: { renderInline: undefined } });
+    const html = renderInlineMarkdown("<img src=\"x\"> &", {
+      md: { renderInline: undefined },
+    });
     expect(html).toContain("<img");
     expect(html).toContain("&amp;");
   });

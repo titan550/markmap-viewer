@@ -4,7 +4,10 @@ import { collectBlobUrls, revokeBlobs } from "./blobs";
 import { getRasterScale, svgToPngBlob } from "./images";
 import type { MarkmapTransformer } from "../types/markmap";
 
-export function renderInlineMarkdown(text: string, transformer: MarkmapTransformer): string {
+export function renderInlineMarkdown(
+  text: string,
+  transformer: Pick<MarkmapTransformer, "md"> | null | undefined
+): string {
   if (transformer?.md?.renderInline) return transformer.md.renderInline(text);
   const parts = text.split(/(<img[^>]*>)/gi);
   return parts
@@ -165,9 +168,10 @@ export async function preRenderMathToImages(
   mdText: string,
   shouldContinue: () => boolean
 ): Promise<{ mdOut: string; blobUrls: string[] } | null> {
-  if (!window.MathJax?.tex2svg) return { mdOut: mdText, blobUrls: [] };
-  if (window.MathJax?.startup?.promise) {
-    try { await window.MathJax.startup.promise; } catch { /* ignore MathJax startup errors */ }
+  const mathJax = window.MathJax;
+  if (!mathJax?.tex2svg) return { mdOut: mdText, blobUrls: [] };
+  if (mathJax?.startup?.promise) {
+    try { await mathJax.startup.promise; } catch { /* ignore MathJax startup errors */ }
   }
   try { if (document.fonts?.ready) await document.fonts.ready; } catch { /* ignore font readiness errors */ }
   if (!shouldContinue()) return null;
@@ -196,7 +200,7 @@ export async function preRenderMathToImages(
     if (!displayMode && !shouldRenderInlineMath(expr)) return null;
     let svg = "";
     try {
-      const svgNode = window.MathJax.tex2svg(expr, { display: displayMode });
+      const svgNode = mathJax.tex2svg(expr, { display: displayMode });
       const svgEl = svgNode?.querySelector?.("svg");
       svg = svgEl ? svgEl.outerHTML : "";
     } catch (e) {
