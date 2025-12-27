@@ -146,6 +146,60 @@ flowchart TB
   Y --> Z["Final node with a concise label"]
 ```
 
+### Mermaid markdown-string edge cases (unquoted labels, <br/>, \\n, quotes)
+
+```mermaid
+flowchart LR
+  A[START: Human Decision\nin High-Touch Process] --> B{Capture Context}
+  B --> C[Decision Inputs\n(Objects + Exceptions)]
+  B --> D[Cross-System Signals\n(Slack, Email, Tickets)]
+  B --> E[Outcome + Rationale\n("Why")]
+  C --> F[Context Graph Node]
+  D --> F
+  E --> F
+  F --> G[Queryable Graph\nwith Precedents]
+  G --> H[AI Agent Query\nfor Similar Cases]
+  H --> I[Automated Proposal\n+ Confidence Score]
+  I --> J{Human Feedback?}
+  J -->|Yes| K[Refine Graph\n(Feedback Loop)]
+  J -->|No| L[Execute Autonomously]
+  K --> G
+  L --> M[END: Scalable Autonomy]
+  style A fill:#e3f2fd
+  style M fill:#e8f5e9
+```
+
+```mermaid
+flowchart LR
+  A[START: Craving Appears] --> B{Identify Want}
+  B --> C[Short-Term Pleasure?<br/>vs<br/>Long-Term Strength?]
+  C -->|Yes| D[Deny It<br/>Feel Pain]
+  C -->|No| E[Allow It<br/>(If Aligned)]
+  D --> F[Reflect:<br/>What can I learn?<br/>How to adapt?]
+  F --> G[Progress & Capacity ↑]
+  E --> H[Maintain Status]
+  G --> I[END: Stronger Self]
+  H --> I
+```
+
+### Mermaid ER diagram relation labels (contrast + pipes)
+
+```mermaid
+erDiagram
+  AUTHOR ||--o{ BOOK : writes
+  BOOK ||--o{ CHAPTER : contains
+  BOOK ||--|| PUBLISHER : published_by
+
+  AUTHOR {
+    string name
+    int id
+  }
+  BOOK {
+    string title
+    int pages
+  }
+```
+
 ### Deep hierarchy + multiple mermaids at same level
 
 #### Branch A
@@ -185,7 +239,3 @@ B1 --> B2 --> B3 --> B4 --> B5
 ## Footer
 
 * If this renders without overlaps after the Mermaid pass + relayout, the orchestration is working.
-
-```
-::contentReference[oaicite:0]{index=0}
-```

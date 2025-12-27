@@ -13,10 +13,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
 
   <style>
-    :root {
-      color-scheme: light dark;
-      --mermaid-label-max: 340px;
-    }
+    :root {}
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
     body { overflow: hidden; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
@@ -38,10 +35,6 @@
       padding: 18px;
       background: rgba(255,255,255,.92);
       box-shadow: 0 10px 30px rgba(0,0,0,.12);
-    }
-    @media (prefers-color-scheme: dark) {
-      .overlay { background: rgba(0,0,0,.35); }
-      .card { background: rgba(24,24,27,.92); }
     }
     h1 { margin: 0 0 10px; font-size: 18px; font-weight: 650; }
     p { margin: 0 0 10px; font-size: 13px; opacity: .8; line-height: 1.4; }
@@ -79,53 +72,10 @@
     foreignObject { overflow: visible; }
     foreignObject * { overflow: visible; }
 
-    foreignObject pre.mermaid,
-    foreignObject pre.mermaid-rendered,
-    foreignObject div.mermaid,
-    foreignObject div.mermaid-rendered {
-      margin: 6px 0 0;
-      padding: 0;
-      border: 0;
-      background: transparent;
-      overflow: visible;
-      white-space: pre;
-      font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-    }
-
-    foreignObject pre.mermaid-rendered,
-    foreignObject div.mermaid-rendered {
-      white-space: normal;
-      font: inherit;
-    }
-
-    foreignObject .mermaid-rendered svg {
+    foreignObject img.mermaid-img {
       display: block;
-      overflow: visible;
-      height: initial;
-      width: initial;
-      max-width: none;
-    }
-
-    foreignObject .mermaid-rendered .nodeLabel,
-    foreignObject .mermaid-rendered .label {
-      max-width: var(--mermaid-label-max) !important;
-      display: inline-block !important;
-      white-space: normal !important;
-      overflow-wrap: anywhere !important;
-      word-break: break-word !important;
-      line-height: 1.25 !important;
-    }
-
-    foreignObject .mermaid-rendered .edgeLabel,
-    foreignObject .mermaid-rendered .edgeLabel * {
-      white-space: normal !important;
-      overflow-wrap: anywhere !important;
-      word-break: break-word !important;
-      line-height: 1.25 !important;
-    }
-
-    svg.erDiagram .edgeLabel text {
-      fill: #fff !important;
+      max-width: 100%;
+      height: auto;
     }
 
     #toggleEditor {
@@ -149,16 +99,6 @@
       background: rgba(255,255,255,1);
       box-shadow: 0 4px 12px rgba(0,0,0,.12);
     }
-    @media (prefers-color-scheme: dark) {
-      #toggleEditor {
-        background: rgba(40,40,43,.92);
-        box-shadow: 0 2px 8px rgba(0,0,0,.3);
-      }
-      #toggleEditor:hover {
-        background: rgba(50,50,53,1);
-        box-shadow: 0 4px 12px rgba(0,0,0,.4);
-      }
-    }
 
     #editorPanel {
       position: fixed;
@@ -178,13 +118,6 @@
     }
     #editorPanel.visible {
       transform: translateX(0);
-    }
-    @media (prefers-color-scheme: dark) {
-      #editorPanel {
-        background: rgba(24,24,27,.95);
-        border-right-color: rgba(127,127,127,.3);
-        box-shadow: 2px 0 12px rgba(0,0,0,.4);
-      }
     }
 
     .editor-header {
@@ -253,37 +186,19 @@
     .CodeMirror-linenumber {
       color: rgba(127,127,127,.5) !important;
     }
-    @media (prefers-color-scheme: dark) {
-      .CodeMirror .cm-header { color: #82aaff !important; font-weight: 600 !important; }
-      .CodeMirror .cm-strong { color: #c3e88d !important; font-weight: bold !important; }
-      .CodeMirror .cm-em { color: #c3e88d !important; font-style: italic !important; }
-      .CodeMirror .cm-link { color: #89ddff !important; }
-      .CodeMirror .cm-url { color: #89ddff !important; }
-      .CodeMirror .cm-quote { color: #697098 !important; font-style: italic !important; }
-      .CodeMirror .cm-comment { color: #697098 !important; }
-      .CodeMirror .cm-variable-2 { color: #f78c6c !important; }
-      .CodeMirror .cm-variable-3 { color: #c792ea !important; }
-    .CodeMirror-cursor { border-left-color: #f8f8f2 !important; }
-    .CodeMirror-dialog {
-      z-index: 30;
-      background: rgba(0,0,0,.35);
-    }
-    }
-    @media (prefers-color-scheme: light) {
-      .CodeMirror .cm-header { color: #0066cc !important; font-weight: 600 !important; }
-      .CodeMirror .cm-strong { color: #008000 !important; font-weight: bold !important; }
-      .CodeMirror .cm-em { color: #008000 !important; font-style: italic !important; }
-      .CodeMirror .cm-link { color: #0066cc !important; }
-      .CodeMirror .cm-url { color: #0066cc !important; }
-      .CodeMirror .cm-quote { color: #666 !important; font-style: italic !important; }
-      .CodeMirror .cm-comment { color: #666 !important; }
-      .CodeMirror .cm-variable-2 { color: #d73a49 !important; }
-      .CodeMirror .cm-variable-3 { color: #6f42c1 !important; }
+    .CodeMirror .cm-header { color: #0066cc !important; font-weight: 600 !important; }
+    .CodeMirror .cm-strong { color: #008000 !important; font-weight: bold !important; }
+    .CodeMirror .cm-em { color: #008000 !important; font-style: italic !important; }
+    .CodeMirror .cm-link { color: #0066cc !important; }
+    .CodeMirror .cm-url { color: #0066cc !important; }
+    .CodeMirror .cm-quote { color: #666 !important; font-style: italic !important; }
+    .CodeMirror .cm-comment { color: #666 !important; }
+    .CodeMirror .cm-variable-2 { color: #d73a49 !important; }
+    .CodeMirror .cm-variable-3 { color: #6f42c1 !important; }
     .CodeMirror-cursor { border-left-color: #333 !important; }
     .CodeMirror-dialog {
       z-index: 30;
       background: rgba(255,255,255,.9);
-    }
     }
 
     .editor-footer {
@@ -349,7 +264,7 @@ flowchart TB
   <div id="overlay" class="overlay">
     <div class="card">
       <h1>Paste Markdown → Mindmap (+ Mermaid)</h1>
-      <p>Markmap pass → Mermaid run inside nodes → bake → Markmap relayout → fit.</p>
+      <p>Pre-render Mermaid → Markmap render → fit.</p>
       <textarea id="paste" placeholder="# Title
 ## Node with Mermaid
 ```mermaid
@@ -412,23 +327,27 @@ flowchart TB
       const mmapi = window.markmap;
       if (!mmapi?.Transformer || !mmapi?.Markmap) { alert("Markmap failed to load."); return; }
       if (!window.TurndownService) { alert("Turndown failed to load."); return; }
-      if (!window.mermaid?.run) { alert("Mermaid failed to load."); return; }
+      if (!window.mermaid?.render) { alert("Mermaid failed to load."); return; }
 
       const { Transformer, Markmap, Toolbar } = mmapi;
       const transformer = new Transformer();
 
-      const escapeHtml = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;" }[c]));
       function sanitizeMermaidLabel(raw, opts = {}) {
         const {
           lineBreak = "<br/>",
           preserveExisting = true,
           normalizeHtmlEntities = true,
           useNamedColon = true,
+          useMarkdownStrings = false,
         } = opts;
 
         if (raw == null) return "";
 
         let s = String(raw);
+        if (useMarkdownStrings) {
+          s = s.replace(/\\n/g, "\n");
+          s = s.replace(/<br\s*\/?>/gi, "\n");
+        }
         s = s.replace(/\r\n?/g, "\n");
 
         if (normalizeHtmlEntities) {
@@ -444,6 +363,10 @@ flowchart TB
         }
 
         const entityRe = /^#(?:\d{1,7}|[A-Za-z][A-Za-z0-9]{1,31});/;
+
+        const markdownSafe = new Set([
+          " ", "(", ")", "[", "]", "{", "}", ".", ",", ":", ";", "/", "-", "_", "+", "?", "!", "%", "\"", "'",
+        ]);
 
         const encodeChunk = (chunk) => {
           let out = "";
@@ -461,7 +384,9 @@ flowchart TB
             const ch = String.fromCodePoint(cp);
             const step = ch.length;
 
-            if (useNamedColon && ch === ":") {
+            if (useMarkdownStrings && markdownSafe.has(ch)) {
+              out += ch;
+            } else if (useNamedColon && ch === ":") {
               out += "#colon;";
             } else if (reAlnum.test(ch)) {
               out += ch;
@@ -478,6 +403,10 @@ flowchart TB
       }
 
       function sanitizeMermaidSourceLabels(mermaidSource, opts = {}) {
+        const {
+          useMarkdownStrings = true,
+          wrapEdgeLabels = true,
+        } = opts;
         const patterns = [
           { open: '["', close: '"]' },
           { open: '("', close: '")' },
@@ -485,6 +414,11 @@ flowchart TB
         ];
 
         const src = String(mermaidSource ?? "");
+        const firstLine = src.split("\n").find((line) => line.trim()) || "";
+        const diagramType = firstLine.trim().split(/\s+/)[0].toLowerCase();
+        const isERDiagram = diagramType === "erdiagram";
+        const allowEdgeLabels = wrapEdgeLabels && !isERDiagram;
+        const allowUnquotedNodeLabels = diagramType === "flowchart" || diagramType === "graph";
         let out = "";
         let i = 0;
 
@@ -493,6 +427,15 @@ flowchart TB
             const ch = src[j];
             if (ch === " " || ch === "\t") continue;
             return ch === "-" || ch === "=" || ch === "." || ch === ">";
+          }
+          return false;
+        };
+
+        const isLikelyNodeLabelStart = (pos) => {
+          for (let j = pos - 1; j >= 0; j--) {
+            const ch = src[j];
+            if (ch === " " || ch === "\t") continue;
+            return /[A-Za-z0-9_\]\)\}]/.test(ch);
           }
           return false;
         };
@@ -508,17 +451,44 @@ flowchart TB
             const end = src.indexOf(p.close, start);
             if (end === -1) { out += src.slice(i); break; }
             const inner = src.slice(start, end);
-            out += p.open + sanitizeMermaidLabel(inner, opts) + p.close;
+            const cleaned = sanitizeMermaidLabel(inner, opts);
+            const wrapped = useMarkdownStrings ? "`" + cleaned + "`" : cleaned;
+            out += p.open + wrapped + p.close;
             i = end + p.close.length;
             continue;
           }
 
-          if (src[i] === "|" && isEdgeLabelStart(i)) {
+          if (allowUnquotedNodeLabels && (src[i] === "[" || src[i] === "(" || src[i] === "{") && isLikelyNodeLabelStart(i)) {
+            const open = src[i];
+            if (src[i + 1] === open) {
+              out += src[i++];
+              continue;
+            }
+            const close = open === "[" ? "]" : open === "(" ? ")" : "}";
+            const start = i + 1;
+            const end = src.indexOf(close, start);
+            if (end === -1) { out += src.slice(i); break; }
+            let inner = src.slice(start, end);
+            if (useMarkdownStrings && inner.includes('"')) {
+              inner = inner.replace(/\"/g, "'");
+            }
+            const cleaned = sanitizeMermaidLabel(inner, opts);
+            const wrapped = useMarkdownStrings ? "`" + cleaned + "`" : cleaned;
+            const quotedOpen = open + '"';
+            const quotedClose = '"' + close;
+            out += quotedOpen + wrapped + quotedClose;
+            i = end + 1;
+            continue;
+          }
+
+          if (allowEdgeLabels && src[i] === "|" && isEdgeLabelStart(i)) {
             const start = i + 1;
             const end = src.indexOf("|", start);
             if (end === -1) { out += src.slice(i); break; }
             const inner = src.slice(start, end);
-            out += "|" + sanitizeMermaidLabel(inner, opts) + "|";
+            const cleaned = sanitizeMermaidLabel(inner, opts);
+            const wrapped = useMarkdownStrings ? "`" + cleaned + "`" : cleaned;
+            out += "|" + wrapped + "|";
             i = end + 1;
             continue;
           }
@@ -539,8 +509,8 @@ flowchart TB
         "2. Visual Elements (Optional/Context-Dependent):",
         "",
         "   - Mermaid diagram and charts",
-        "       - Use Mermaid markdown-strings: A[\"long label ...\"] for best wrapping.",
-        "       - Use <br/> for newlines inside labels",
+        "       - Use Mermaid markdown-strings: A[\"`long label ...`\"] for best wrapping.",
+        "       - Use \\n for newlines inside labels",
         "       - Mermaid Hash-Entity Standard: Mermaid requires characters to be escaped using # instead of & (e.g., #34; instead of &quot;) - Example: `Status: \"Processing #1\" (Update Required)` -> `Status#colon;#32;#34;Processing#32;#35;1#34;#32;#40;Update#32;Required#41;`",
         "       - Put mermaid diagrams inside markdown code blocks starting with ```mermaid",
         "       - In flowcharts: prefer LR over TB and always include a START and END block",
@@ -572,25 +542,6 @@ flowchart TB
         "",
         "3. Note that Markmap IGNORES paragraph text (i.e., not list, heading, mermaid, table or code block, etc)"
       ].join("\n");
-      const md = transformer.md;
-      const defaultFence =
-        md.renderer.rules.fence ||
-        ((tokens, idx, options, env, self) => self.renderToken(tokens, idx, options));
-
-      md.renderer.rules.fence = (tokens, idx, options, env, self) => {
-        const t = tokens[idx];
-        const lang = (t.info || "").trim().split(/\s+/)[0].toLowerCase();
-        if (lang === "mermaid") {
-          const cleaned = sanitizeMermaidSourceLabels(t.content || "", {
-            lineBreak: "<br/>",
-            preserveExisting: true,
-            normalizeHtmlEntities: true,
-            useNamedColon: true,
-          });
-          return `<pre class="mermaid">${escapeHtml(cleaned)}</pre>`;
-        }
-        return defaultFence(tokens, idx, options, env, self);
-      };
 
       const mm = Markmap.create(svgEl);
 
@@ -930,7 +881,6 @@ flowchart TB
 
       let renderedOnce = false;
       let pending = 0;
-      let lastEditorSearch = "";
 
       const nextFrame = () => new Promise((r) => requestAnimationFrame(r));
       const nextFrames = async (n) => { for (let i = 0; i < n; i++) await nextFrame(); };
@@ -946,111 +896,123 @@ flowchart TB
         }
       }
 
-      const IS_SAFARI = (() => {
-        const ua = navigator.userAgent;
-        const vendor = navigator.vendor || "";
-        return /Safari/.test(ua) && /Apple Computer/.test(vendor) &&
-          !/Chrome|Chromium|CriOS|FxiOS|EdgiOS/.test(ua);
-      })();
       let mermaidInitialized = false;
+      let mermaidId = 0;
+      let activeMermaidBlobUrls = [];
+
       function ensureMermaidInit() {
         if (mermaidInitialized) return;
         window.mermaid.initialize({
           startOnLoad: false,
-          wrap: true,
-          wrapPadding: 8,
+          htmlLabels: false,
           markdownAutoWrap: true,
-          // Safari/WebKit foreignObject positioning bugs can hide labels.
-          htmlLabels: !IS_SAFARI,
-          flowchart: { htmlLabels: !IS_SAFARI },
-          sequence: { htmlLabels: !IS_SAFARI },
-          gantt: { htmlLabels: !IS_SAFARI },
+          wrap: true,
+          flowchart: {
+            htmlLabels: false,
+            useMaxWidth: false,
+            wrappingWidth: 340,
+          },
         });
         mermaidInitialized = true;
       }
 
-      function fixMermaidSvgClipping(scopeEl) {
-        const svgs = scopeEl.querySelectorAll('foreignObject .mermaid-rendered svg, foreignObject svg[id^="mermaid-"]');
-        for (const svg of svgs) {
-          svg.style.overflow = "visible";
-          try {
-            const bbox = svg.getBBox();
-            const pad = 8;
-            const vb = svg.getAttribute("viewBox");
-            if (!vb) {
-              svg.setAttribute("viewBox", `${bbox.x-pad} ${bbox.y-pad} ${bbox.width+2*pad} ${bbox.height+2*pad}`);
-            } else {
-              const parts = vb.split(/\s+/).map(Number);
-              if (parts.length === 4 && parts.every(Number.isFinite)) {
-                const [x,y,w,h] = parts;
-                svg.setAttribute("viewBox", `${x-pad} ${y-pad} ${w+2*pad} ${h+2*pad}`);
-              }
-            }
-            const wantW = Math.ceil(bbox.width + 2*pad);
-            const wantH = Math.ceil(bbox.height + 2*pad);
-            const wAttr = parseFloat(svg.getAttribute("width") || "");
-            const hAttr = parseFloat(svg.getAttribute("height") || "");
-            if (Number.isFinite(wAttr) && wAttr < wantW) svg.setAttribute("width", String(wantW));
-            if (Number.isFinite(hAttr) && hAttr < wantH) svg.setAttribute("height", String(wantH));
-          } catch {}
+      function parseSvgSize(svgText) {
+        const vbMatch = svgText.match(/viewBox=['"]([^'"]+)['"]/i);
+        if (vbMatch) {
+          const parts = vbMatch[1].trim().split(/\s+/).map(Number);
+          if (parts.length === 4 && parts.every(Number.isFinite)) {
+            const width = Math.max(1, Math.ceil(parts[2]));
+            const height = Math.max(1, Math.ceil(parts[3]));
+            return { width, height };
+          }
+        }
+
+        const widthMatch = svgText.match(/width=['"]([^'"]+)['"]/i);
+        const heightMatch = svgText.match(/height=['"]([^'"]+)['"]/i);
+        if (widthMatch && heightMatch) {
+          const width = Math.max(1, Math.ceil(parseFloat(widthMatch[1])));
+          const height = Math.max(1, Math.ceil(parseFloat(heightMatch[1])));
+          if (Number.isFinite(width) && Number.isFinite(height)) return { width, height };
+        }
+
+        return { width: 480, height: 240 };
+      }
+
+      function revokeMermaidBlobs(urls) {
+        if (!urls?.length) return;
+        for (const url of urls) {
+          try { URL.revokeObjectURL(url); } catch {}
         }
       }
 
-      async function renderMermaidInsideMarkmap(currentToken) {
+      function injectSvgStyle(svgText, styleText) {
+        if (!styleText) return svgText;
+        if (/<style[^>]*>/i.test(svgText)) {
+          return svgText.replace(/<style[^>]*>/i, (m) => m + styleText);
+        }
+        return svgText.replace(/<svg\b[^>]*>/i, (m) => `${m}<style>${styleText}</style>`);
+      }
+
+      async function preRenderMermaidFencesToImages(mdText, currentToken) {
         ensureMermaidInit();
-
-        const rendered = svgEl.querySelectorAll("[data-mermaid-rendered]");
-        for (const el of rendered) {
-          if (el.querySelector("svg") && el.dataset.mermaidSource) {
-            el.textContent = el.dataset.mermaidSource;
-          }
-          el.removeAttribute("data-processed");
-          delete el.dataset.mermaidRendered;
-          el.classList.remove("mermaid-rendered");
-          if (!el.classList.contains("mermaid")) el.classList.add("mermaid");
-        }
-
-        const nodes = Array.from(svgEl.querySelectorAll("foreignObject pre.mermaid, foreignObject div.mermaid"));
-
-        if (!nodes.length) return false;
-
         try { if (document.fonts?.ready) await document.fonts.ready; } catch {}
-        if (currentToken !== pending) return false;
+        if (currentToken !== pending) return null;
 
-        if (window.mermaid?.mermaidAPI?.reset) {
-          try { window.mermaid.mermaidAPI.reset(); } catch {}
-        }
+        const re = /^([ \t]*)```mermaid[ \t]*\n([\s\S]*?)\n\1```/gmi;
+        let out = "";
+        let lastIndex = 0;
+        let match;
+        const blobUrls = [];
 
-        for (const el of nodes) {
-          if (el.querySelector("svg") && el.dataset.mermaidSource) {
-            el.textContent = el.dataset.mermaidSource;
+        while ((match = re.exec(mdText)) !== null) {
+          out += mdText.slice(lastIndex, match.index);
+          const indent = match[1] || "";
+          const safeIndent = indent.length >= 4 ? "" : indent;
+          const raw = match[2];
+          const isERDiagram = /^\s*erDiagram\b/m.test(raw);
+          const cleaned = sanitizeMermaidSourceLabels(raw, {
+            lineBreak: "\n",
+            preserveExisting: true,
+            normalizeHtmlEntities: true,
+            useNamedColon: true,
+            useMarkdownStrings: true,
+            wrapEdgeLabels: !isERDiagram,
+          });
+
+          let svg;
+          try {
+            const result = await window.mermaid.render(`mermaid-pre-${++mermaidId}`, cleaned);
+            svg = result?.svg || "";
+          } catch (e) {
+            console.warn("Mermaid render failed; skipping block", e);
+            svg = "";
           }
-          el.dataset.mermaidSource = el.textContent || "";
-          el.removeAttribute("data-processed");
+
+          if (currentToken !== pending) {
+            revokeMermaidBlobs(blobUrls);
+            return null;
+          }
+
+          if (!svg) {
+            out += match[0];
+            lastIndex = re.lastIndex;
+            continue;
+          }
+
+          if (isERDiagram) {
+            svg = injectSvgStyle(svg, ".edgeLabel text{fill:#fff;}");
+          }
+
+          const size = parseSvgSize(svg);
+          const blob = new Blob([svg], { type: "image/svg+xml" });
+          const url = URL.createObjectURL(blob);
+          blobUrls.push(url);
+          out += `${safeIndent}- <img class="mermaid-img" alt="mermaid diagram" src="${url}" width="${size.width}" height="${size.height}">`;
+          lastIndex = re.lastIndex;
         }
 
-        await window.mermaid.run({ nodes, suppressErrors: true });
-
-        for (const el of nodes) {
-          el.dataset.mermaidRendered = "1";
-          el.classList.remove("mermaid");
-          el.classList.add("mermaid-rendered");
-        }
-
-        await nextFrames(1);
-        fixMermaidSvgClipping(svgEl);
-
-        return true;
-      }
-
-      function bakeForeignObjectHTMLIntoData(node) {
-        const found = mm.findElement(node);
-        if (found?.g) {
-          const fo = found.g.querySelector("foreignObject");
-          const container = fo?.firstElementChild;
-          if (container) node.content = container.innerHTML;
-        }
-        if (node.children) for (const c of node.children) bakeForeignObjectHTMLIntoData(c);
+        out += mdText.slice(lastIndex);
+        return { mdOut: out, blobUrls };
       }
 
       async function render(mdText) {
@@ -1060,7 +1022,12 @@ flowchart TB
         const token = ++pending;
         try {
           const normalized = markmapNormalize(text);
-          const { root } = transformer.transform(normalized);
+          const pre = await preRenderMermaidFencesToImages(normalized, token);
+          if (!pre || token !== pending) return;
+          revokeMermaidBlobs(activeMermaidBlobUrls);
+          activeMermaidBlobUrls = pre.blobUrls;
+
+          const { root } = transformer.transform(pre.mdOut);
 
           await mm.setData(root);
 
@@ -1068,24 +1035,6 @@ flowchart TB
           if (token !== pending) return;
 
           mm.fit();
-          await nextFrames(1);
-          if (token !== pending) return;
-
-          const hadMermaid = await renderMermaidInsideMarkmap(token);
-          if (token !== pending) return;
-
-          if (hadMermaid) {
-            await nextFrames(2);
-            if (token !== pending) return;
-
-            bakeForeignObjectHTMLIntoData(mm.state.data);
-            await mm.renderData(mm.state.data);
-
-            await nextFrames(2);
-            if (token !== pending) return;
-
-            mm.fit();
-          }
 
           hideOverlayOnce();
         } catch (e) {
