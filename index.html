@@ -72,10 +72,16 @@
     foreignObject { overflow: visible; }
     foreignObject * { overflow: visible; }
 
-    foreignObject img.mermaid-img {
+    foreignObject img.diagram-img {
       display: block;
       max-width: 100%;
       height: auto;
+    }
+    foreignObject img.math-img {
+      display: inline-block;
+      max-width: 100%;
+      height: auto;
+      vertical-align: middle;
     }
 
     #toggleEditor {
@@ -201,6 +207,7 @@
       background: rgba(255,255,255,.9);
     }
 
+
     .editor-footer {
       padding: 10px 18px;
       border-top: 1px solid rgba(127,127,127,.15);
@@ -293,12 +300,30 @@ flowchart TB
   <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/gfm/gfm.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script>
+    window.MathJax = {
+      startup: { typeset: false },
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+      },
+      svg: { fontCache: 'none' },
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.18.12"></script>
   <script src="https://cdn.jsdelivr.net/npm/markmap-view@0.18.12/dist/browser/index.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/markmap-toolbar@0.18.12/dist/index.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/turndown@7.2.0/dist/turndown.min.js"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/mermaid@11.12.2/dist/mermaid.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@viz-js/viz@3.24.0/lib/viz-standalone.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/wavedrom/3.1.0/skins/default.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/wavedrom/3.1.0/wavedrom.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega@6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-embed@7"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/json5/2.2.3/index.min.js"></script>
 
   <script>
     (() => {
@@ -879,6 +904,19 @@ flowchart TB
         return s.replace(/\n{3,}/g, "\n\n").trim() + "\n";
       }
 
+      function computeSafeIndent(indent, mdText, matchIndex) {
+        if (indent.length < 4) return indent;
+        const before = mdText.slice(0, matchIndex);
+        const lines = before.split("\n");
+        for (let k = lines.length - 1; k >= 0; k--) {
+          const line = lines[k];
+          if (!line.trim()) continue;
+          if (/^\s*([-*+]\s+|\d+\.\s+)/.test(line)) return indent;
+          break;
+        }
+        return indent.slice(0, 3);
+      }
+
       let renderedOnce = false;
       let pending = 0;
 
@@ -898,7 +936,7 @@ flowchart TB
 
       let mermaidInitialized = false;
       let mermaidId = 0;
-      let activeMermaidBlobUrls = [];
+      let activeBlobUrls = [];
 
       function ensureMermaidInit() {
         if (mermaidInitialized) return;
@@ -938,7 +976,7 @@ flowchart TB
         return { width: 480, height: 240 };
       }
 
-      function revokeMermaidBlobs(urls) {
+      function revokeBlobs(urls) {
         if (!urls?.length) return;
         for (const url of urls) {
           try { URL.revokeObjectURL(url); } catch {}
@@ -951,6 +989,176 @@ flowchart TB
           return svgText.replace(/<style[^>]*>/i, (m) => m + styleText);
         }
         return svgText.replace(/<svg\b[^>]*>/i, (m) => `${m}<style>${styleText}</style>`);
+      }
+
+      function parseSvgSizeWithUnit(svgText, basePx) {
+        const widthMatch = svgText.match(/width=\"([^\"]+)\"/i);
+        const heightMatch = svgText.match(/height=\"([^\"]+)\"/i);
+        if (!widthMatch || !heightMatch) return null;
+
+        const parseSize = (value) => {
+          const num = parseFloat(value);
+          if (!Number.isFinite(num)) return null;
+          const unit = String(value).replace(/[0-9.\s]/g, "").toLowerCase();
+          if (!unit || unit === "px") return num;
+          if (unit === "em") return num * basePx;
+          if (unit === "ex") return num * basePx * 0.5;
+          if (unit === "in") return num * 96;
+          if (unit === "pt") return num * (96 / 72);
+          if (unit === "cm") return num * (96 / 2.54);
+          if (unit === "mm") return num * (96 / 25.4);
+          return null;
+        };
+
+        const width = parseSize(widthMatch[1]);
+        const height = parseSize(heightMatch[1]);
+        if (!Number.isFinite(width) || !Number.isFinite(height)) return null;
+        return { width: Math.max(1, Math.ceil(width)), height: Math.max(1, Math.ceil(height)) };
+      }
+
+      async function preRenderMathToImages(mdText, currentToken) {
+        if (!window.MathJax?.tex2svg) return { mdOut: mdText, blobUrls: [] };
+        if (window.MathJax?.startup?.promise) {
+          try { await window.MathJax.startup.promise; } catch {}
+        }
+        try { if (document.fonts?.ready) await document.fonts.ready; } catch {}
+        if (currentToken !== pending) return null;
+
+        const blobUrls = [];
+        let out = "";
+        let i = 0;
+        let inFence = false;
+        let fence = "";
+        let inInlineCode = false;
+        let inlineCodeTicks = 0;
+
+        const isLineStart = (pos) => pos === 0 || mdText[pos - 1] === "\n";
+        const readLine = (pos) => {
+          const end = mdText.indexOf("\n", pos);
+          return { text: end === -1 ? mdText.slice(pos) : mdText.slice(pos, end), end: end === -1 ? mdText.length : end + 1 };
+        };
+
+        const countTickRun = (pos) => {
+          let n = 0;
+          while (mdText[pos + n] === "`") n += 1;
+          return n;
+        };
+
+        const renderMathImg = (expr, displayMode, indent, matchIndex) => {
+          let svg = "";
+          try {
+            const svgNode = window.MathJax.tex2svg(expr, { display: displayMode });
+            const svgEl = svgNode?.querySelector?.("svg");
+            svg = svgEl ? svgEl.outerHTML : "";
+          } catch (e) {
+            console.warn("MathJax render failed; skipping block", e);
+            return null;
+          }
+
+          if (!svg) return null;
+
+          const basePx = parseFloat(getComputedStyle(document.body).fontSize) || 16;
+          const sized = parseSvgSizeWithUnit(svg, basePx);
+          const size = sized || parseSvgSize(svg);
+          const blob = new Blob([svg], { type: "image/svg+xml" });
+          const url = URL.createObjectURL(blob);
+          blobUrls.push(url);
+          const img = `<img class="math-img" alt="math" src="${url}" width="${size.width}" height="${size.height}">`;
+          if (displayMode) {
+            const safeIndent = computeSafeIndent(indent, mdText, matchIndex);
+            return `${safeIndent}- ${img}`;
+          }
+          return img;
+        };
+
+        const findClosingDollar = (start, isDouble) => {
+          const needle = isDouble ? "$$" : "$";
+          for (let pos = start; pos < mdText.length; pos++) {
+            if (mdText[pos] === "\\") { pos += 1; continue; }
+            if (mdText.startsWith(needle, pos)) return pos;
+          }
+          return -1;
+        };
+
+        while (i < mdText.length) {
+          if (!inFence && isLineStart(i)) {
+            const line = readLine(i);
+            const m = line.text.match(/^([ \t]*)(```|~~~)/);
+            if (m) {
+              inFence = true;
+              fence = m[2];
+              out += line.text + "\n";
+              i = line.end;
+              continue;
+            }
+          }
+
+          if (inFence && isLineStart(i)) {
+            const line = readLine(i);
+            if (line.text.trim().startsWith(fence)) {
+              inFence = false;
+              fence = "";
+              out += line.text + "\n";
+              i = line.end;
+              continue;
+            }
+          }
+
+          if (inFence) {
+            out += mdText[i++];
+            continue;
+          }
+
+          if (!inInlineCode && mdText[i] === "`") {
+            const run = countTickRun(i);
+            inInlineCode = true;
+            inlineCodeTicks = run;
+            out += mdText.slice(i, i + run);
+            i += run;
+            continue;
+          }
+          if (inInlineCode) {
+            if (mdText[i] === "`") {
+              const run = countTickRun(i);
+              out += mdText.slice(i, i + run);
+              i += run;
+              if (run >= inlineCodeTicks) {
+                inInlineCode = false;
+                inlineCodeTicks = 0;
+              }
+              continue;
+            }
+            out += mdText[i++];
+            continue;
+          }
+
+          if (mdText[i] === "$" && mdText[i + 1] === "$") {
+            const lineStart = mdText.lastIndexOf("\n", i - 1) + 1;
+            const indent = mdText.slice(lineStart, i);
+            const isBlock = /^[ \t]*$/.test(indent);
+            const end = findClosingDollar(i + 2, true);
+            if (end === -1) { out += mdText[i++]; continue; }
+            const expr = mdText.slice(i + 2, end).trim();
+            const img = renderMathImg(expr, isBlock, indent, i);
+            if (img) out += img; else out += mdText.slice(i, end + 2);
+            i = end + 2;
+            continue;
+          }
+
+          if (mdText[i] === "$") {
+            const end = findClosingDollar(i + 1, false);
+            if (end === -1) { out += mdText[i++]; continue; }
+            const expr = mdText.slice(i + 1, end);
+            const img = renderMathImg(expr, false, "", i);
+            if (img) out += img; else out += mdText.slice(i, end + 1);
+            i = end + 1;
+            continue;
+          }
+
+          out += mdText[i++];
+        }
+
+        return { mdOut: out, blobUrls };
       }
 
       async function preRenderMermaidFencesToImages(mdText, currentToken) {
@@ -1022,7 +1230,12 @@ flowchart TB
         const token = ++pending;
         try {
           const normalized = markmapNormalize(text);
-          const pre = await preRenderMermaidFencesToImages(normalized, token);
+          const mathPre = await preRenderMathToImages(normalized, token);
+          if (!mathPre || token !== pending) return;
+          revokeMathBlobs(activeMathBlobUrls);
+          activeMathBlobUrls = mathPre.blobUrls;
+
+          const pre = await preRenderMermaidFencesToImages(mathPre.mdOut, token);
           if (!pre || token !== pending) return;
           revokeMermaidBlobs(activeMermaidBlobUrls);
           activeMermaidBlobUrls = pre.blobUrls;
