@@ -7,11 +7,13 @@ const map1Text = fs.readFileSync(map1Path, "utf8");
 
 async function loadMap1(page) {
   await page.goto("/");
-  await page.getByRole("textbox", { name: "# Title ## Node with Mermaid" }).fill(map1Text);
-  await page.evaluate(() => {
+  await page.waitForSelector("#paste");
+  await page.evaluate((text) => {
     const paste = document.querySelector("#paste");
+    if (!paste) return;
+    paste.value = text;
     paste.dispatchEvent(new Event("input", { bubbles: true }));
-  });
+  }, map1Text);
   await page.waitForTimeout(2500);
 }
 
