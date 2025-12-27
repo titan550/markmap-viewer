@@ -4,10 +4,12 @@ import path from "node:path";
 
 const map1Path = path.join(process.cwd(), "test", "map1.md");
 const map1Text = fs.readFileSync(map1Path, "utf8");
+const legacyFileUrl = `file://${path.join(process.cwd(), "legacy", "index.html")}`;
 
 async function loadMap1(page, url) {
-  await page.goto(url);
-  await page.waitForSelector("#paste");
+  const targetUrl = url === "legacy" ? legacyFileUrl : url;
+  await page.goto(targetUrl);
+  await page.waitForSelector("#paste", { state: "attached" });
   await page.evaluate((text) => {
     const paste = document.querySelector("#paste");
     if (!paste) return;
@@ -32,7 +34,7 @@ test.describe("legacy parity (transitional)", () => {
     // Transitional parity test: remove once refactor is fully trusted.
     const legacyPage = await context.newPage();
 
-    await loadMap1(legacyPage, "/legacy/index.html");
+    await loadMap1(legacyPage, "legacy");
     await loadMap1(page, "/");
 
     const legacyCounts = await getCounts(legacyPage);
