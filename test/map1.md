@@ -200,6 +200,20 @@ erDiagram
   }
 ```
 
+### LaTeX inline + block math (MathJax SVG)
+
+- Inline math: $\to$ $O(1)$, $O(N)$, $x^{1/2}$, $\frac{a}{b}$, $\alpha + \beta$.
+- Mixed text + math: Speed is $O(n \log n)$ and memory is $O(n)$.
+- Inline code: ``literal $x$`` should stay code, not math.
+
+$$
+\int_{0}^{1} x^2 \\, dx = \\frac{1}{3}
+$$
+
+$$
+\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}
+$$
+
 ### Deep hierarchy + multiple mermaids at same level
 
 #### Branch A
@@ -234,6 +248,116 @@ graph LR
 ```mermaid
 graph LR
 B1 --> B2 --> B3 --> B4 --> B5
+```
+
+## Additional diagram types (nested list)
+
+- Parent node
+  - DOT child
+    ```dot
+    // engine: dot
+    digraph G { rankdir=LR; A -> B -> C; }
+    ```
+  - WaveDrom child
+    ```wavedrom
+    { signal: [
+      { name: "clk", wave: "p....." },
+      { name: "req", wave: "01..0." },
+      { name: "ack", wave: "0.1..0" }
+    ], head: { text: "join late data timeline", tick: 0, every: 2 } }
+    ```
+  - Vega-Lite SVG child
+    ```vega-lite
+    // format: svg
+    {
+      "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+      "width": 260,
+      "height": 160,
+      "data": { "values": [
+        {"k":"A","v":28}, {"k":"B","v":55}, {"k":"C","v":43}
+      ]},
+      "mark": "bar",
+      "encoding": {
+        "x": {"field":"k","type":"nominal"},
+        "y": {"field":"v","type":"quantitative"}
+      }
+    }
+    ```
+  - Vega-Lite PNG child (non-SVG)
+    ```vega-lite
+    // format: png
+    {
+      "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+      "width": 260,
+      "height": 160,
+      "data": { "values": [
+        {"k":"A","v":28}, {"k":"B","v":55}, {"k":"C","v":43}
+      ]},
+      "mark": {"type":"line","point":true},
+      "encoding": {
+        "x": {"field":"k","type":"ordinal"},
+        "y": {"field":"v","type":"quantitative"}
+      }
+      }
+    ```
+
+## Example renderers (quick sanity)
+
+### Nested list
+
+- Parent node
+  - DOT child
+    ```dot
+    digraph G { rankdir=LR; A -> B -> C; }
+    ```
+  - WaveDrom child
+    ```wavedrom
+    { signal: [
+      { name: "clk", wave: "p....." },
+      { name: "req", wave: "01..0." },
+      { name: "ack", wave: "0.1..0" }
+    ], head: { text: "join late data timeline", tick: 0, every: 2 } }
+    ```
+  - Vega-Lite SVG child
+    ```vega-lite
+    // format: svg
+    {
+      "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+      "width": 260,
+      "height": 160,
+      "data": { "values": [
+        {"k":"A","v":28}, {"k":"B","v":55}, {"k":"C","v":43}
+      ]},
+      "mark": "bar",
+      "encoding": {
+        "x": {"field":"k","type":"nominal"},
+        "y": {"field":"v","type":"quantitative"}
+      }
+    }
+    ```
+  - Vega-Lite PNG child (non-SVG)
+    ```vega-lite
+    // format: png
+    {
+      "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+      "width": 260,
+      "height": 160,
+      "data": { "values": [
+        {"k":"A","v":28}, {"k":"B","v":55}, {"k":"C","v":43}
+      ]},
+      "mark": {"type":"line","point":true},
+      "encoding": {
+        "x": {"field":"k","type":"ordinal"},
+        "y": {"field":"v","type":"quantitative"}
+      }
+    }
+    ```
+
+### Mermaid baseline
+
+```mermaid
+flowchart LR
+  A["`hello`"] --> B["`world`"]
 ```
 
 ## Footer
