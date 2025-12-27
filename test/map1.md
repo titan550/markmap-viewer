@@ -266,9 +266,8 @@ B1 --> B2 --> B3 --> B4 --> B5
       { name: "ack", wave: "0.1..0" }
     ], head: { text: "join late data timeline", tick: 0, every: 2 } }
     ```
-  - Vega-Lite SVG child
+  - Vega-Lite child
     ```vega-lite
-    // format: svg
     {
       "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
       "width": 260,
@@ -282,23 +281,6 @@ B1 --> B2 --> B3 --> B4 --> B5
         "y": {"field":"v","type":"quantitative"}
       }
     }
-    ```
-  - Vega-Lite PNG child (non-SVG)
-    ```vega-lite
-    // format: png
-    {
-      "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
-      "width": 260,
-      "height": 160,
-      "data": { "values": [
-        {"k":"A","v":28}, {"k":"B","v":55}, {"k":"C","v":43}
-      ]},
-      "mark": {"type":"line","point":true},
-      "encoding": {
-        "x": {"field":"k","type":"ordinal"},
-        "y": {"field":"v","type":"quantitative"}
-      }
-      }
     ```
 
 ## Example renderers (quick sanity)
@@ -318,9 +300,8 @@ B1 --> B2 --> B3 --> B4 --> B5
       { name: "ack", wave: "0.1..0" }
     ], head: { text: "join late data timeline", tick: 0, every: 2 } }
     ```
-  - Vega-Lite SVG child
+  - Vega-Lite child
     ```vega-lite
-    // format: svg
     {
       "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
       "width": 260,
@@ -331,23 +312,6 @@ B1 --> B2 --> B3 --> B4 --> B5
       "mark": "bar",
       "encoding": {
         "x": {"field":"k","type":"nominal"},
-        "y": {"field":"v","type":"quantitative"}
-      }
-    }
-    ```
-  - Vega-Lite PNG child (non-SVG)
-    ```vega-lite
-    // format: png
-    {
-      "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
-      "width": 260,
-      "height": 160,
-      "data": { "values": [
-        {"k":"A","v":28}, {"k":"B","v":55}, {"k":"C","v":43}
-      ]},
-      "mark": {"type":"line","point":true},
-      "encoding": {
-        "x": {"field":"k","type":"ordinal"},
         "y": {"field":"v","type":"quantitative"}
       }
     }

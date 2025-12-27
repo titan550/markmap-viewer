@@ -9,8 +9,9 @@ Instant markdown to mindmap converter. Paste anywhere, see it visualized.
 - **Paste anywhere** — works on desktop and mobile
 - **Live rendering** — updates as you type
 - **Auto-fit** — automatically scales to fit viewport
-- **Dark mode** — respects system preference
-- **Zero dependencies** — single HTML file, runs entirely in browser
+- **Diagrams** — Mermaid, Graphviz (DOT), WaveDrom, Vega-Lite
+- **Math** — LaTeX via MathJax (rendered to images for Safari stability)
+- **Zero build** — single HTML file, runs entirely in browser
 
 ## Usage
 
@@ -33,7 +34,16 @@ Works best with headings and lists:
 
 - [markmap](https://markmap.js.org/) — markdown to mindmap transformer
 - [D3.js](https://d3js.org/) — visualization
+- [Mermaid](https://mermaid.js.org/) — diagrams
+- [Viz.js](https://viz-js.com/) — Graphviz/DOT
+- [WaveDrom](https://wavedrom.com/) — timing diagrams
+- [Vega-Lite](https://vega.github.io/vega-lite/) — charts
+- [MathJax](https://www.mathjax.org/) — LaTeX
 - Vanilla JS — no build step
+
+## Notes
+
+- Safari/WebKit foreignObject constraints and the rendering choices: `docs/foreignobject-safari-notes.md`
 
 ## License
 
