@@ -124,6 +124,10 @@
       line-height: 1.25 !important;
     }
 
+    svg.erDiagram .edgeLabel text {
+      fill: #fff !important;
+    }
+
     #toggleEditor {
       position: fixed;
       top: 16px;
@@ -942,6 +946,12 @@ flowchart TB
         }
       }
 
+      const IS_SAFARI = (() => {
+        const ua = navigator.userAgent;
+        const vendor = navigator.vendor || "";
+        return /Safari/.test(ua) && /Apple Computer/.test(vendor) &&
+          !/Chrome|Chromium|CriOS|FxiOS|EdgiOS/.test(ua);
+      })();
       let mermaidInitialized = false;
       function ensureMermaidInit() {
         if (mermaidInitialized) return;
@@ -950,7 +960,11 @@ flowchart TB
           wrap: true,
           wrapPadding: 8,
           markdownAutoWrap: true,
-          htmlLabels: true,
+          // Safari/WebKit foreignObject positioning bugs can hide labels.
+          htmlLabels: !IS_SAFARI,
+          flowchart: { htmlLabels: !IS_SAFARI },
+          sequence: { htmlLabels: !IS_SAFARI },
+          gantt: { htmlLabels: !IS_SAFARI },
         });
         mermaidInitialized = true;
       }
