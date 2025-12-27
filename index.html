@@ -10,7 +10,6 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/theme/dracula.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/addon/dialog/dialog.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
 
   <style>
     :root {}
@@ -79,8 +78,13 @@
     }
     foreignObject img.math-img {
       display: inline-block;
-      max-width: 100%;
-      height: auto;
+      vertical-align: middle;
+    }
+    foreignObject .math-block img.math-img {
+      display: block;
+    }
+    foreignObject img.math-line-img {
+      display: inline-block;
       vertical-align: middle;
     }
 
@@ -299,7 +303,6 @@ flowchart TB
   <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/markdown/markdown.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/gfm/gfm.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
   <script>
     window.MathJax = {
       startup: { typeset: false },
@@ -317,7 +320,7 @@ flowchart TB
   <script src="https://cdn.jsdelivr.net/npm/turndown@7.2.0/dist/turndown.min.js"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/mermaid@11.12.2/dist/mermaid.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@viz-js/viz@3.24.0/lib/viz-standalone.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@viz-js/viz@3.24.0/dist/viz-global.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/wavedrom/3.1.0/skins/default.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/wavedrom/3.1.0/wavedrom.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega@6"></script>
@@ -409,7 +412,9 @@ flowchart TB
             const ch = String.fromCodePoint(cp);
             const step = ch.length;
 
-            if (useMarkdownStrings && markdownSafe.has(ch)) {
+            if (useMarkdownStrings && (ch === "`" || ch === "&" || ch === ">" || ch === "=")) {
+              out += `#${cp};`;
+            } else if (useMarkdownStrings && markdownSafe.has(ch)) {
               out += ch;
             } else if (useNamedColon && ch === ":") {
               out += "#colon;";
@@ -836,6 +841,10 @@ flowchart TB
           .replace(/^(.+)\n=+\s*$/gm, (_, t) => `# ${t.trim()}`)
           .replace(/^(.+)\n-+\s*$/gm, (_, t) => `## ${t.trim()}`);
 
+        const isDiagramFence = (line) =>
+          /^```(?:mermaid|dot|graphviz|gv|wavedrom|wave|wavejson|vega-lite|vl)\b/.test(line);
+        const isTopLevelDiagramFence = (line) =>
+          isDiagramFence(line.trim()) && line.trim() === line;
 
         const fixedLines = s.split("\n");
         const result = [];
@@ -854,12 +863,13 @@ flowchart TB
             let hasMermaidAfter = false;
 
             for (let j = i + 1; j < fixedLines.length; j++) {
-              const checkLine = fixedLines[j].trim();
+              const rawCheckLine = fixedLines[j];
+              const checkLine = rawCheckLine.trim();
               if (checkLine === '') continue;
 
               if (checkLine.match(/^[-*+]\s+/)) {
                 hasListAfter = true;
-              } else if (checkLine === '```mermaid' && hasListAfter) {
+              } else if (isTopLevelDiagramFence(rawCheckLine) && hasListAfter) {
                 hasMermaidAfter = true;
                 break;
               } else if (checkLine.match(/^#{1,6}\s+/)) {
@@ -889,7 +899,7 @@ flowchart TB
             continue;
           }
 
-          if (line.trim() === '```mermaid' && needsSeparatorForList) {
+          if (needsSeparatorForList && isTopLevelDiagramFence(line)) {
             const separatorLevel = Math.min(lastHeadingLevel + 1, 6);
             result.push('');
             result.push('#'.repeat(separatorLevel) + ' Diagram');
@@ -917,11 +927,60 @@ flowchart TB
         return indent.slice(0, 3);
       }
 
+      function getListContext(mdText, matchIndex) {
+        const before = mdText.slice(0, matchIndex);
+        const lines = before.split("\n");
+        for (let k = lines.length - 1; k >= 0; k--) {
+          const line = lines[k];
+          if (!line.trim()) continue;
+          const m = line.match(/^(\s*)(?:[-*+]\s+|\d+\.\s+)/);
+          if (m) {
+            const indent = m[1] || "";
+            return { isList: true, indent, childIndent: indent + "  " };
+          }
+          break;
+        }
+        return { isList: false, indent: "", childIndent: "" };
+      }
+
+      function appendInlineToLastListItem(out, html) {
+        let end = out.length;
+        let idx = out.lastIndexOf("\n");
+        while (idx >= 0) {
+          const line = out.slice(idx + 1, end);
+          if (!line.trim()) {
+            end = idx;
+            idx = out.lastIndexOf("\n", idx - 1);
+            continue;
+          }
+          if (/^\s*(?:[-*+]\s+|\d+\.\s+)[^\n]*$/.test(line)) {
+            return out.slice(0, idx + 1) + line + " " + html;
+          }
+          return null;
+        }
+        if (/^\s*(?:[-*+]\s+|\d+\.\s+)[^\n]*$/.test(out)) {
+          return out + " " + html;
+        }
+        return null;
+      }
+
       let renderedOnce = false;
       let pending = 0;
 
       const nextFrame = () => new Promise((r) => requestAnimationFrame(r));
       const nextFrames = async (n) => { for (let i = 0; i < n; i++) await nextFrame(); };
+      const preloadImages = async (urls, token) => {
+        if (!urls?.length) return;
+        for (const url of urls) {
+          if (token !== pending) return;
+          await new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve();
+            img.onerror = () => resolve();
+            img.src = url;
+          });
+        }
+      };
 
       function hideOverlayOnce() {
         if (!renderedOnce) {
@@ -991,6 +1050,206 @@ flowchart TB
         return svgText.replace(/<svg\b[^>]*>/i, (m) => `${m}<style>${styleText}</style>`);
       }
 
+      function setSvgPixelSize(svgText, width, height) {
+        return svgText.replace(/<svg\b([^>]*)>/i, (full, attrs) => {
+          let next = attrs
+            .replace(/\swidth=\"[^\"]*\"/i, "")
+            .replace(/\sheight=\"[^\"]*\"/i, "")
+            .replace(/\sstyle=\"[^\"]*\"/i, "");
+          return `<svg${next} width="${width}" height="${height}" style="width:${width}px;height:${height}px;">`;
+        });
+      }
+
+      function getRasterScale() {
+        const dpr = window.devicePixelRatio || 1;
+        return Math.max(1, Math.min(2, dpr));
+      }
+
+      function collectBlobUrls(text) {
+        const urls = [];
+        const re = /src=['"](blob:[^'"]+)['"]/g;
+        let match;
+        while ((match = re.exec(text))) {
+          urls.push(match[1]);
+        }
+        return urls;
+      }
+
+      async function svgToPngBlob(svgText, width, height, scale = 1) {
+        const svgBlob = new Blob([svgText], { type: "image/svg+xml" });
+        const url = URL.createObjectURL(svgBlob);
+        try {
+          const img = new Image();
+          img.decoding = "async";
+          const loadPromise = new Promise((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = (err) => reject(err);
+          });
+          img.src = url;
+          if (img.decode) {
+            await img.decode().catch(() => loadPromise);
+          } else {
+            await loadPromise;
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.ceil(width * scale));
+          canvas.height = Math.max(1, Math.ceil(height * scale));
+          const ctx = canvas.getContext("2d");
+          if (!ctx) throw new Error("Canvas is not available");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          return await new Promise((resolve, reject) => {
+            canvas.toBlob((blob) => {
+              if (blob) resolve(blob);
+              else reject(new Error("Canvas PNG export failed"));
+            }, "image/png");
+          });
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+      }
+
+      function renderInlineMarkdown(text) {
+        if (transformer?.md?.renderInline) return transformer.md.renderInline(text);
+        const parts = text.split(/(<img[^>]*>)/gi);
+        return parts.map((part) => {
+          if (/^<img/i.test(part)) return part;
+          return part
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+        }).join("");
+      }
+
+      async function renderHtmlLineToPng(html) {
+        const baseStyle = getComputedStyle(document.body);
+        const fontSize = parseFloat(baseStyle.fontSize) || 16;
+        const lineHeight = parseFloat(baseStyle.lineHeight);
+        const normalizedLineHeight = Number.isFinite(lineHeight) ? lineHeight : Math.round(fontSize * 1.2);
+        const baseFont = `${baseStyle.fontStyle} ${baseStyle.fontWeight} ${fontSize}px ${baseStyle.fontFamily}`;
+        const codeFont = `${baseStyle.fontStyle} ${baseStyle.fontWeight} ${fontSize}px ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`;
+        const scale = getRasterScale();
+
+        const container = document.createElement("div");
+        container.innerHTML = html;
+        const tokens = [];
+
+        const walk = (node, inCode) => {
+          if (node.nodeType === Node.TEXT_NODE) {
+            const text = node.textContent || "";
+            if (text) tokens.push({ type: "text", text, font: inCode ? codeFont : baseFont });
+            return;
+          }
+          if (node.nodeType !== Node.ELEMENT_NODE) return;
+          const el = node;
+          const tag = el.tagName.toLowerCase();
+          if (tag === "img") {
+            const width = parseFloat(el.getAttribute("width") || "") || 0;
+            const height = parseFloat(el.getAttribute("height") || "") || 0;
+            tokens.push({ type: "img", src: el.getAttribute("src") || "", width, height });
+            return;
+          }
+          if (tag === "code") {
+            Array.from(el.childNodes).forEach((child) => walk(child, true));
+            return;
+          }
+          if (tag === "br") {
+            tokens.push({ type: "text", text: " ", font: inCode ? codeFont : baseFont });
+            return;
+          }
+          Array.from(el.childNodes).forEach((child) => walk(child, inCode));
+        };
+
+        Array.from(container.childNodes).forEach((child) => walk(child, false));
+
+        const imgTokens = tokens.filter((token) => token.type === "img" && token.src);
+        const imgCache = new Map();
+        await Promise.all(imgTokens.map((token) => {
+          if (imgCache.has(token.src)) return Promise.resolve();
+          return new Promise((resolve) => {
+            const img = new Image();
+            img.decoding = "async";
+            img.onload = () => resolve();
+            img.onerror = () => resolve();
+            img.src = token.src;
+            imgCache.set(token.src, img);
+          });
+        }));
+
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("Canvas is not available");
+        ctx.textBaseline = "alphabetic";
+        ctx.fillStyle = baseStyle.color;
+
+        const paddingX = 2;
+        const paddingY = 4;
+        const imgAscentRatio = 0.8;
+        const imgDescentRatio = 0.2;
+        let totalWidth = 0;
+        let maxAscent = normalizedLineHeight * 0.8;
+        let maxDescent = normalizedLineHeight * 0.2;
+        for (const token of tokens) {
+          if (token.type === "text") {
+            ctx.font = token.font;
+            const width = ctx.measureText(token.text).width;
+            token.width = width;
+            const metrics = ctx.measureText(token.text);
+            const ascent = Number.isFinite(metrics.actualBoundingBoxAscent)
+              ? metrics.actualBoundingBoxAscent
+              : normalizedLineHeight * 0.8;
+            const descent = Number.isFinite(metrics.actualBoundingBoxDescent)
+              ? metrics.actualBoundingBoxDescent
+              : normalizedLineHeight * 0.2;
+            maxAscent = Math.max(maxAscent, ascent);
+            maxDescent = Math.max(maxDescent, descent);
+            totalWidth += width;
+          } else if (token.type === "img") {
+            const img = imgCache.get(token.src);
+            const width = token.width || img?.naturalWidth || 0;
+            const height = token.height || img?.naturalHeight || 0;
+            token.width = width;
+            token.height = height;
+            totalWidth += width;
+            maxAscent = Math.max(maxAscent, height * imgAscentRatio);
+            maxDescent = Math.max(maxDescent, height * imgDescentRatio);
+          }
+        }
+
+        const width = Math.max(1, Math.ceil(totalWidth + paddingX * 2));
+        const height = Math.max(1, Math.ceil(maxAscent + maxDescent + paddingY * 2));
+        canvas.width = Math.max(1, Math.ceil(width * scale));
+        canvas.height = Math.max(1, Math.ceil(height * scale));
+        ctx.scale(scale, scale);
+
+        let x = paddingX;
+        const baselineY = paddingY + maxAscent;
+        for (const token of tokens) {
+          if (token.type === "text") {
+            ctx.font = token.font;
+            ctx.fillStyle = baseStyle.color;
+            ctx.fillText(token.text, x, baselineY);
+            x += token.width || 0;
+          } else if (token.type === "img") {
+            const img = imgCache.get(token.src);
+            const w = token.width || 0;
+            const h = token.height || 0;
+            if (img && w > 0 && h > 0) {
+              const y = baselineY - h * imgAscentRatio;
+              ctx.drawImage(img, x, y, w, h);
+            }
+            x += w;
+          }
+        }
+
+        const blob = await new Promise((resolve, reject) => {
+          canvas.toBlob((out) => {
+            if (out) resolve(out);
+            else reject(new Error("Canvas PNG export failed"));
+          }, "image/png");
+        });
+        return { blob, width, height };
+      }
+
       function parseSvgSizeWithUnit(svgText, basePx) {
         const widthMatch = svgText.match(/width=\"([^\"]+)\"/i);
         const heightMatch = svgText.match(/height=\"([^\"]+)\"/i);
@@ -1044,7 +1303,14 @@ flowchart TB
           return n;
         };
 
-        const renderMathImg = (expr, displayMode, indent, matchIndex) => {
+        const shouldRenderInlineMath = (expr) => {
+          const trimmed = (expr || "").trim();
+          if (!trimmed) return false;
+          return /[\\^_{}=]/.test(trimmed);
+        };
+
+        const renderMathImg = async (expr, displayMode, indent, matchIndex) => {
+          if (!displayMode && !shouldRenderInlineMath(expr)) return null;
           let svg = "";
           try {
             const svgNode = window.MathJax.tex2svg(expr, { display: displayMode });
@@ -1059,14 +1325,32 @@ flowchart TB
 
           const basePx = parseFloat(getComputedStyle(document.body).fontSize) || 16;
           const sized = parseSvgSizeWithUnit(svg, basePx);
-          const size = sized || parseSvgSize(svg);
-          const blob = new Blob([svg], { type: "image/svg+xml" });
+          const size = sized || parseSvgSize(svg) || { width: 120, height: 40 };
+          svg = setSvgPixelSize(svg, size.width, size.height);
+          const rasterScale = getRasterScale();
+          let blob;
+          try {
+            blob = await svgToPngBlob(svg, size.width, size.height, rasterScale);
+          } catch (e) {
+            console.warn("MathJax rasterize failed; skipping block", e);
+            return null;
+          }
           const url = URL.createObjectURL(blob);
           blobUrls.push(url);
-          const img = `<img class="math-img" alt="math" src="${url}" width="${size.width}" height="${size.height}">`;
+          const img = `<img class="math-img" alt="math" src="${url}" width="${size.width}" height="${size.height}" style="width:${size.width}px;height:${size.height}px;">`;
           if (displayMode) {
-            const safeIndent = computeSafeIndent(indent, mdText, matchIndex);
-            return `${safeIndent}- ${img}`;
+            const useListCtx = indent.length > 0;
+            const listCtx = useListCtx ? getListContext(mdText, matchIndex) : { isList: false };
+            const safeIndent = listCtx.isList ? listCtx.childIndent : computeSafeIndent(indent, mdText, matchIndex);
+            if (listCtx.isList) {
+              const inlineOut = appendInlineToLastListItem(out, `<div class="math-block">${img}</div>`);
+              if (inlineOut !== null) {
+                out = inlineOut;
+                return "";
+              }
+              return `${safeIndent}<div class="math-block">${img}</div>`;
+            }
+            return `${safeIndent}- <div class="math-block">${img}</div>`;
           }
           return img;
         };
@@ -1139,8 +1423,13 @@ flowchart TB
             const end = findClosingDollar(i + 2, true);
             if (end === -1) { out += mdText[i++]; continue; }
             const expr = mdText.slice(i + 2, end).trim();
-            const img = renderMathImg(expr, isBlock, indent, i);
-            if (img) out += img; else out += mdText.slice(i, end + 2);
+            const img = await renderMathImg(expr, isBlock, indent, i);
+            if (currentToken !== pending) {
+              revokeBlobs(blobUrls);
+              return null;
+            }
+            if (img !== null) out += img;
+            else out += mdText.slice(i, end + 2);
             i = end + 2;
             continue;
           }
@@ -1149,8 +1438,13 @@ flowchart TB
             const end = findClosingDollar(i + 1, false);
             if (end === -1) { out += mdText[i++]; continue; }
             const expr = mdText.slice(i + 1, end);
-            const img = renderMathImg(expr, false, "", i);
-            if (img) out += img; else out += mdText.slice(i, end + 1);
+            const img = await renderMathImg(expr, false, "", i);
+            if (currentToken !== pending) {
+              revokeBlobs(blobUrls);
+              return null;
+            }
+            if (img !== null) out += img;
+            else out += mdText.slice(i, end + 1);
             i = end + 1;
             continue;
           }
@@ -1161,12 +1455,312 @@ flowchart TB
         return { mdOut: out, blobUrls };
       }
 
-      async function preRenderMermaidFencesToImages(mdText, currentToken) {
-        ensureMermaidInit();
-        try { if (document.fonts?.ready) await document.fonts.ready; } catch {}
-        if (currentToken !== pending) return null;
+      async function preRenderMathLinesToImages(mdText, mathBlobUrls, currentToken) {
+        if (!mdText.includes("math-img")) return { mdOut: mdText, blobUrls: mathBlobUrls || [] };
 
-        const re = /^([ \t]*)```mermaid[ \t]*\n([\s\S]*?)\n\1```/gmi;
+        const lines = mdText.split("\n");
+        const outLines = [];
+        let inFence = false;
+        let fence = "";
+        const lineBlobUrls = [];
+
+        for (let i = 0; i < lines.length; i += 1) {
+          const line = lines[i];
+          if (!inFence) {
+            const m = line.match(/^([ \t]*)(```|~~~)/);
+            if (m) {
+              inFence = true;
+              fence = m[2];
+              outLines.push(line);
+              continue;
+            }
+          } else {
+            if (line.trim().startsWith(fence)) {
+              inFence = false;
+              fence = "";
+            }
+            outLines.push(line);
+            continue;
+          }
+
+          const listMatch = line.match(/^(\s*(?:[-*+]\s+|\d+\.\s+))(.*)$/);
+          if (!listMatch) {
+            outLines.push(line);
+            continue;
+          }
+
+          const block = [];
+          let j = i;
+          while (j < lines.length) {
+            const candidate = lines[j];
+            const m = candidate.match(/^(\s*(?:[-*+]\s+|\d+\.\s+))(.*)$/);
+            if (!m) break;
+            block.push(candidate);
+            j += 1;
+          }
+          i = j - 1;
+
+          const hasInlineMath = block.some((entry) => entry.includes("math-img") && !entry.includes("math-block"));
+          if (!hasInlineMath) {
+            outLines.push(...block);
+            continue;
+          }
+
+          for (const entry of block) {
+            const entryMatch = entry.match(/^(\s*(?:[-*+]\s+|\d+\.\s+))(.*)$/);
+            if (!entryMatch) {
+              outLines.push(entry);
+              continue;
+            }
+            const prefix = entryMatch[1];
+            const content = entryMatch[2];
+            if (content.includes("math-block")) {
+              outLines.push(entry);
+              continue;
+            }
+
+            let html = "";
+            try {
+              html = renderInlineMarkdown(content);
+            } catch (e) {
+              console.warn("Math line markdown render failed; keeping text", e);
+              outLines.push(entry);
+              continue;
+            }
+
+            let rendered;
+            try {
+              rendered = await renderHtmlLineToPng(html);
+            } catch (e) {
+              console.warn("Math line rasterize failed; keeping text", e);
+              outLines.push(entry);
+              continue;
+            }
+
+            if (currentToken !== pending) {
+              revokeBlobs(lineBlobUrls);
+              return null;
+            }
+
+            const url = URL.createObjectURL(rendered.blob);
+            lineBlobUrls.push(url);
+            const img = `<img class="math-line-img" alt="math line" src="${url}" width="${rendered.width}" height="${rendered.height}" style="width:${rendered.width}px;height:${rendered.height}px;">`;
+            outLines.push(`${prefix}${img}`);
+          }
+        }
+
+        const mdOut = outLines.join("\n");
+        const usedUrls = collectBlobUrls(mdOut);
+        const usedSet = new Set(usedUrls);
+        for (const url of mathBlobUrls || []) {
+          if (!usedSet.has(url)) revokeBlobs([url]);
+        }
+        for (const url of lineBlobUrls) {
+          if (!usedSet.has(url)) revokeBlobs([url]);
+        }
+        return { mdOut, blobUrls: usedUrls };
+      }
+
+      let vizPromise;
+      const wavedromScratch = document.createElement("div");
+      const vegaScratch = document.createElement("div");
+      wavedromScratch.style.position = "fixed";
+      wavedromScratch.style.left = "-99999px";
+      wavedromScratch.style.top = "-99999px";
+      vegaScratch.style.position = "fixed";
+      vegaScratch.style.left = "-99999px";
+      vegaScratch.style.top = "-99999px";
+      document.body.appendChild(wavedromScratch);
+      document.body.appendChild(vegaScratch);
+
+      function getViz() {
+        if (!window.Viz?.instance) throw new Error("Viz.js is not available");
+        return vizPromise ??= window.Viz.instance();
+      }
+
+      function stripFirstDirective(src, re) {
+        const lines = src.split("\n");
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          if (!line.trim()) continue;
+          const m = line.match(re);
+          if (m) {
+            lines.splice(i, 1);
+            return { value: m[1], body: lines.join("\n") };
+          }
+          return { value: null, body: src };
+        }
+        return { value: null, body: src };
+      }
+
+      async function getPngSizeFromBlob(blob) {
+        if (window.createImageBitmap) {
+          const bmp = await createImageBitmap(blob);
+          const size = { width: bmp.width, height: bmp.height };
+          if (bmp.close) bmp.close();
+          return size;
+        }
+        return await new Promise((resolve, reject) => {
+          const img = new Image();
+          const url = URL.createObjectURL(blob);
+          img.onload = () => {
+            URL.revokeObjectURL(url);
+            resolve({ width: img.naturalWidth, height: img.naturalHeight });
+          };
+          img.onerror = (err) => {
+            URL.revokeObjectURL(url);
+            reject(err);
+          };
+          img.src = url;
+        });
+      }
+
+      const renderers = {
+        mermaid: {
+          name: "Mermaid",
+          render: async (src) => {
+            ensureMermaidInit();
+            try { if (document.fonts?.ready) await document.fonts.ready; } catch {}
+            const isERDiagram = /^\s*erDiagram\b/m.test(src);
+            const cleaned = sanitizeMermaidSourceLabels(src, {
+              lineBreak: "\n",
+              preserveExisting: true,
+              normalizeHtmlEntities: true,
+              useNamedColon: true,
+              useMarkdownStrings: true,
+              wrapEdgeLabels: !isERDiagram,
+            });
+
+            const result = await window.mermaid.render(`mermaid-pre-${++mermaidId}`, cleaned);
+            let svg = result?.svg || "";
+            if (!svg) throw new Error("Mermaid output missing");
+            if (isERDiagram) {
+              svg = injectSvgStyle(svg, ".edgeLabel text{fill:#fff;}");
+            }
+            const size = parseSvgSize(svg);
+            return {
+              mime: "image/svg+xml",
+              data: svg,
+              width: size.width,
+              height: size.height,
+              className: "diagram-img mermaid-img",
+              alt: "mermaid diagram",
+            };
+          },
+        },
+        dot: {
+          name: "DOT",
+          render: async (src) => {
+            const { value: engine, body } = stripFirstDirective(src, /^\s*(?:\/\/|#)\s*engine:\s*([A-Za-z0-9_-]+)/i);
+            const viz = await getViz();
+            const svgEl = viz.renderSVGElement(body, engine ? { engine } : undefined);
+            const svg = new XMLSerializer().serializeToString(svgEl);
+            const size = parseSvgSizeWithUnit(svg, 16) || parseSvgSize(svg);
+            return {
+              mime: "image/svg+xml",
+              data: svg,
+              width: size.width,
+              height: size.height,
+              className: "diagram-img dot-img",
+              alt: "dot diagram",
+            };
+          },
+        },
+        graphviz: {
+          name: "DOT",
+          render: async (src, ctx) => renderers.dot.render(src, ctx),
+        },
+        gv: {
+          name: "DOT",
+          render: async (src, ctx) => renderers.dot.render(src, ctx),
+        },
+        wavedrom: {
+          name: "WaveDrom",
+          render: async (src) => {
+            // Known limitation: WaveDrom parsing expects JSON5-ish syntax (via JSON5 parser).
+            if (!window.JSON5?.parse) throw new Error("JSON5 parser unavailable");
+            if (!window.WaveDrom?.ProcessAll) throw new Error("WaveDrom is not available");
+            const obj = window.JSON5.parse(src);
+            const normalized = JSON.stringify(obj);
+            wavedromScratch.innerHTML = "";
+            const script = document.createElement("script");
+            script.type = "WaveDrom";
+            script.textContent = normalized;
+            wavedromScratch.appendChild(script);
+            window.WaveDrom.ProcessAll();
+            const svgEl = wavedromScratch.querySelector("svg");
+            if (!svgEl) throw new Error("WaveDrom output missing");
+            const svg = new XMLSerializer().serializeToString(svgEl);
+            const size = parseSvgSize(svg);
+            return {
+              mime: "image/svg+xml",
+              data: svg,
+              width: size.width,
+              height: size.height,
+              className: "diagram-img wavedrom-img",
+              alt: "wavedrom diagram",
+            };
+          },
+        },
+        wave: {
+          name: "WaveDrom",
+          render: async (src, ctx) => renderers.wavedrom.render(src, ctx),
+        },
+        wavejson: {
+          name: "WaveDrom",
+          render: async (src, ctx) => renderers.wavedrom.render(src, ctx),
+        },
+        "vega-lite": {
+          name: "Vega-Lite",
+          render: async (src, ctx) => {
+            if (!window.vegaEmbed) throw new Error("Vega-Embed is not available");
+            const hint = (ctx?.formatHint || "").toLowerCase();
+            const directive = stripFirstDirective(src, /^\s*(?:\/\/|#)\s*format:\s*(svg|png)\b/i);
+            const format = (directive.value || hint || "svg").toLowerCase();
+            const body = directive.body;
+            const parser = window.JSON5?.parse || JSON.parse;
+            const spec = parser(body);
+            vegaScratch.innerHTML = "";
+
+            // Known limitation: Vega charts are exported as images (no interactivity).
+            if (format === "png") {
+              const res = await window.vegaEmbed(vegaScratch, spec, { actions: false, renderer: "canvas" });
+              const url = await res.view.toImageURL("png", 1);
+              res.view.finalize();
+              const blob = await (await fetch(url)).blob();
+              const size = await getPngSizeFromBlob(blob);
+              return {
+                mime: "image/png",
+                data: blob,
+                width: size.width,
+                height: size.height,
+                className: "diagram-img vega-png-img",
+                alt: "vega-lite chart",
+              };
+            }
+
+            const res = await window.vegaEmbed(vegaScratch, spec, { actions: false, renderer: "svg" });
+            const svg = await res.view.toSVG();
+            res.view.finalize();
+            const size = parseSvgSize(svg);
+            return {
+              mime: "image/svg+xml",
+              data: svg,
+              width: size.width,
+              height: size.height,
+              className: "diagram-img vega-img",
+              alt: "vega-lite chart",
+            };
+          },
+        },
+        vl: {
+          name: "Vega-Lite",
+          render: async (src, ctx) => renderers["vega-lite"].render(src, ctx),
+        },
+      };
+
+      async function preRenderDiagramFencesToImages(mdText, currentToken) {
+        const re = /^([ \t]*)```([A-Za-z0-9_-]+)(?:[ \t]+([A-Za-z0-9_-]+))?[ \t]*\n([\s\S]*?)\n\1```/gmi;
         let out = "";
         let lastIndex = 0;
         let match;
@@ -1175,47 +1769,65 @@ flowchart TB
         while ((match = re.exec(mdText)) !== null) {
           out += mdText.slice(lastIndex, match.index);
           const indent = match[1] || "";
-          const safeIndent = indent.length >= 4 ? "" : indent;
-          const raw = match[2];
-          const isERDiagram = /^\s*erDiagram\b/m.test(raw);
-          const cleaned = sanitizeMermaidSourceLabels(raw, {
-            lineBreak: "\n",
-            preserveExisting: true,
-            normalizeHtmlEntities: true,
-            useNamedColon: true,
-            useMarkdownStrings: true,
-            wrapEdgeLabels: !isERDiagram,
-          });
+          const lang = (match[2] || "").toLowerCase();
+          const hint = (match[3] || "").toLowerCase();
+          const raw = match[4] || "";
+          const renderer = renderers[lang];
+          const listCtx = getListContext(mdText, match.index);
+          const safeIndent = listCtx.isList ? listCtx.childIndent : computeSafeIndent(indent, mdText, match.index);
 
-          let svg;
-          try {
-            const result = await window.mermaid.render(`mermaid-pre-${++mermaidId}`, cleaned);
-            svg = result?.svg || "";
-          } catch (e) {
-            console.warn("Mermaid render failed; skipping block", e);
-            svg = "";
-          }
-
-          if (currentToken !== pending) {
-            revokeMermaidBlobs(blobUrls);
-            return null;
-          }
-
-          if (!svg) {
+          if (!renderer) {
             out += match[0];
             lastIndex = re.lastIndex;
             continue;
           }
 
-          if (isERDiagram) {
-            svg = injectSvgStyle(svg, ".edgeLabel text{fill:#fff;}");
+          if (currentToken !== pending) {
+            revokeBlobs(blobUrls);
+            return null;
           }
 
-          const size = parseSvgSize(svg);
-          const blob = new Blob([svg], { type: "image/svg+xml" });
+          let rendered;
+          try {
+            rendered = await renderer.render(raw, { mdText, matchIndex: match.index, token: currentToken, formatHint: hint });
+          } catch (e) {
+            const firstLine = raw.split("\n").find((line) => line.trim()) || "";
+            console.warn(`${renderer.name} render failed; skipping block`, firstLine, e);
+            out += match[0];
+            lastIndex = re.lastIndex;
+            continue;
+          }
+
+          if (!rendered || currentToken !== pending) {
+            revokeBlobs(blobUrls);
+            return null;
+          }
+
+          const { mime, data, width, height, className, alt } = rendered;
+          if (!mime || !data) {
+            out += match[0];
+            lastIndex = re.lastIndex;
+            continue;
+          }
+
+          const blob = data instanceof Blob ? data : new Blob([data], { type: mime });
           const url = URL.createObjectURL(blob);
           blobUrls.push(url);
-          out += `${safeIndent}- <img class="mermaid-img" alt="mermaid diagram" src="${url}" width="${size.width}" height="${size.height}">`;
+          const finalWidth = Number.isFinite(width) && width > 0 ? Math.ceil(width) : 480;
+          const finalHeight = Number.isFinite(height) && height > 0 ? Math.ceil(height) : 240;
+          const imgClass = className || "diagram-img";
+          const imgAlt = alt || `${renderer.name} diagram`;
+          const imgHtml = `<img class="${imgClass}" alt="${imgAlt}" src="${url}" width="${finalWidth}" height="${finalHeight}" style="width:${finalWidth}px;height:${finalHeight}px;">`;
+          if (listCtx.isList) {
+            const inlineOut = appendInlineToLastListItem(out, imgHtml);
+            if (inlineOut !== null) {
+              out = inlineOut;
+            } else {
+              out += `${safeIndent}${imgHtml}`;
+            }
+          } else {
+            out += `${safeIndent}- ${imgHtml}`;
+          }
           lastIndex = re.lastIndex;
         }
 
@@ -1232,16 +1844,22 @@ flowchart TB
           const normalized = markmapNormalize(text);
           const mathPre = await preRenderMathToImages(normalized, token);
           if (!mathPre || token !== pending) return;
-          revokeMathBlobs(activeMathBlobUrls);
-          activeMathBlobUrls = mathPre.blobUrls;
+          const mathLinePre = await preRenderMathLinesToImages(mathPre.mdOut, mathPre.blobUrls, token);
+          if (!mathLinePre || token !== pending) {
+            revokeBlobs(mathPre.blobUrls);
+            return;
+          }
+          const diagramPre = await preRenderDiagramFencesToImages(mathLinePre.mdOut, token);
+          if (!diagramPre || token !== pending) {
+            revokeBlobs(mathLinePre.blobUrls);
+            return;
+          }
+          revokeBlobs(activeBlobUrls);
+          activeBlobUrls = [...mathLinePre.blobUrls, ...diagramPre.blobUrls];
 
-          const pre = await preRenderMermaidFencesToImages(mathPre.mdOut, token);
-          if (!pre || token !== pending) return;
-          revokeMermaidBlobs(activeMermaidBlobUrls);
-          activeMermaidBlobUrls = pre.blobUrls;
-
-          const { root } = transformer.transform(pre.mdOut);
-
+          const { root } = transformer.transform(diagramPre.mdOut);
+          await preloadImages(activeBlobUrls, token);
+          if (token !== pending) return;
           await mm.setData(root);
 
           await nextFrames(2);
@@ -1343,17 +1961,62 @@ flowchart TB
 
       exampleBtn.addEventListener("click", () => {
         const mdText = [
-          "# Markmap + Mermaid (Wrap + No Spill Test)",
-          "## A Mermaid node with long text",
+          "# Renderers Test",
+          "",
+          "## Nested list (must stay nested)",
+          "- Parent node",
+          "    - DOT child",
+          "      ```dot",
+          "      digraph G { rankdir=LR; A -> B -> C; }",
+          "      ```",
+          "    - WaveDrom child",
+          "      ```wavedrom",
+          "      { signal: [",
+          "        { name: \"clk\", wave: \"p.....\" },",
+          "        { name: \"req\", wave: \"01..0.\" },",
+          "        { name: \"ack\", wave: \"0.1..0\" }",
+          "      ], head: { text: \"join late data timeline\", tick: 0, every: 2 } }",
+          "      ```",
+          "    - Vega-Lite SVG child",
+          "      ```vega-lite",
+          "      // format: svg",
+          "      {",
+          "        \"$schema\": \"https://vega.github.io/schema/vega-lite/v6.json\",",
+          "        \"width\": 260,",
+          "        \"height\": 160,",
+          "        \"data\": { \"values\": [",
+          "          {\"k\":\"A\",\"v\":28}, {\"k\":\"B\",\"v\":55}, {\"k\":\"C\",\"v\":43}",
+          "        ]},",
+          "        \"mark\": \"bar\",",
+          "        \"encoding\": {",
+          "          \"x\": {\"field\":\"k\",\"type\":\"nominal\"},",
+          "          \"y\": {\"field\":\"v\",\"type\":\"quantitative\"}",
+          "        }",
+          "      }",
+          "      ```",
+          "    - Vega-Lite PNG child (non-SVG)",
+          "      ```vega-lite",
+          "      // format: png",
+          "      {",
+          "        \"$schema\": \"https://vega.github.io/schema/vega-lite/v6.json\",",
+          "        \"width\": 260,",
+          "        \"height\": 160,",
+          "        \"data\": { \"values\": [",
+          "          {\"k\":\"A\",\"v\":28}, {\"k\":\"B\",\"v\":55}, {\"k\":\"C\",\"v\":43}",
+          "        ]},",
+          "        \"mark\": {\"type\":\"line\",\"point\":true},",
+          "        \"encoding\": {",
+          "          \"x\": {\"field\":\"k\",\"type\":\"ordinal\"},",
+          "          \"y\": {\"field\":\"v\",\"type\":\"quantitative\"}",
+          "        }",
+          "      }",
+          "      ```",
+          "",
+          "## Mermaid baseline",
           "```mermaid",
-          "flowchart TB",
-          "  A[\"This is a very long label containing a URL-like token https://example.com/some/really/really/really/long/path and also regular prose so we can verify wrapping and token breaking inside the node.\"] --> B[\"Another long label that should wrap rather than spilling out to the right side of the shape.\"]",
-          "  B --> C[\"Done\"]",
-          "  A -->|Status: \"Processing #1\" (Update Required)| C",
+          "flowchart LR",
+          "  A[\"`hello`\"] --> B[\"`world`\"]",
           "```",
-          "## Notes",
-          "- Wrapping: mermaid config wrap + CSS max-width for labels",
-          "- No clipping: SVG overflow visible + padded viewBox via getBBox()",
         ].join("\n");
         pasteEl.value = mdText;
         render(mdText);
