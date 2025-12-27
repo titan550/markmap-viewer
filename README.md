@@ -11,7 +11,7 @@ Instant markdown to mindmap converter. Paste anywhere, see it visualized.
 - **Auto-fit** — automatically scales to fit viewport
 - **Diagrams** — Mermaid, Graphviz (DOT), WaveDrom, Vega-Lite
 - **Math** — LaTeX via MathJax (rendered to images for Safari stability)
-- **Zero build** — single HTML file, runs entirely in browser
+- **Client-only** — static assets, CDN dependencies, no server required
 
 ## Usage
 
@@ -30,6 +30,22 @@ Works best with headings and lists:
 - Point C
 ```
 
+## Development
+
+```bash
+npm install
+npm run dev
+```
+
+```bash
+npm run test
+npm run test:coverage
+npm run test:e2e
+npm run lint
+npm run build
+npm run preview
+```
+
 ## Tech Stack
 
 - [markmap](https://markmap.js.org/) — markdown to mindmap transformer
@@ -39,7 +55,7 @@ Works best with headings and lists:
 - [WaveDrom](https://wavedrom.com/) — timing diagrams
 - [Vega-Lite](https://vega.github.io/vega-lite/) — charts
 - [MathJax](https://www.mathjax.org/) — LaTeX
-- Vanilla JS — no build step
+- Vite + TypeScript
 
 ## Notes
 
