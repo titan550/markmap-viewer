@@ -80,7 +80,7 @@
       display: inline-block;
       vertical-align: middle;
     }
-    foreignObject .math-block img.math-img {
+    foreignObject img.math-img.math-block {
       display: block;
     }
     foreignObject img.math-line-img {
@@ -1337,20 +1337,25 @@ flowchart TB
           }
           const url = URL.createObjectURL(blob);
           blobUrls.push(url);
-          const img = `<img class="math-img" alt="math" src="${url}" width="${size.width}" height="${size.height}" style="width:${size.width}px;height:${size.height}px;">`;
+          const imgClass = displayMode ? "math-img math-block" : "math-img";
+          const img = `<img class="${imgClass}" alt="math" src="${url}" width="${size.width}" height="${size.height}" style="width:${size.width}px;height:${size.height}px;">`;
           if (displayMode) {
+            const listItemMatch = indent.match(/^(\s*(?:[-*+]\s+|\d+\.\s+))/);
+            if (listItemMatch) {
+              return img;
+            }
             const useListCtx = indent.length > 0;
             const listCtx = useListCtx ? getListContext(mdText, matchIndex) : { isList: false };
             const safeIndent = listCtx.isList ? listCtx.childIndent : computeSafeIndent(indent, mdText, matchIndex);
             if (listCtx.isList) {
-              const inlineOut = appendInlineToLastListItem(out, `<div class="math-block">${img}</div>`);
+              const inlineOut = appendInlineToLastListItem(out, img);
               if (inlineOut !== null) {
                 out = inlineOut;
                 return "";
               }
-              return `${safeIndent}<div class="math-block">${img}</div>`;
+              return `${safeIndent}${img}`;
             }
-            return `${safeIndent}- <div class="math-block">${img}</div>`;
+            return `${safeIndent}- ${img}`;
           }
           return img;
         };
@@ -1418,8 +1423,11 @@ flowchart TB
 
           if (mdText[i] === "$" && mdText[i + 1] === "$") {
             const lineStart = mdText.lastIndexOf("\n", i - 1) + 1;
+            const line = readLine(lineStart);
             const indent = mdText.slice(lineStart, i);
-            const isBlock = /^[ \t]*$/.test(indent);
+            const lineContent = line.text.replace(/^\s*(?:[-*+]\s+|\d+\.\s+)?/, "");
+            const isLineBlock = /^\$\$[\s\S]*\$\$\s*$/.test(lineContent);
+            const isBlock = isLineBlock || /^[ \t]*$/.test(indent);
             const end = findClosingDollar(i + 2, true);
             if (end === -1) { out += mdText[i++]; continue; }
             const expr = mdText.slice(i + 2, end).trim();
@@ -1506,7 +1514,8 @@ flowchart TB
             continue;
           }
 
-          for (const entry of block) {
+          for (let bi = 0; bi < block.length; bi += 1) {
+            const entry = block[bi];
             const entryMatch = entry.match(/^(\s*(?:[-*+]\s+|\d+\.\s+))(.*)$/);
             if (!entryMatch) {
               outLines.push(entry);
@@ -1546,6 +1555,16 @@ flowchart TB
             lineBlobUrls.push(url);
             const img = `<img class="math-line-img" alt="math line" src="${url}" width="${rendered.width}" height="${rendered.height}" style="width:${rendered.width}px;height:${rendered.height}px;">`;
             outLines.push(`${prefix}${img}`);
+            const nextEntry = block[bi + 1];
+            if (nextEntry) {
+              const currIndentMatch = entry.match(/^(\s*)/);
+              const nextIndentMatch = nextEntry.match(/^(\s*)/);
+              const currIndent = currIndentMatch ? currIndentMatch[1].length : 0;
+              const nextIndent = nextIndentMatch ? nextIndentMatch[1].length : 0;
+              if (nextIndent > currIndent) {
+                outLines.push(" ".repeat(currIndent + 2));
+              }
+            }
           }
         }
 
