@@ -7,16 +7,10 @@ export function markmapNormalize(mdText: string): string {
     .replace(/^(.+)\n=+\s*$/gm, (_, t) => `# ${t.trim()}`)
     .replace(/^(.+)\n-+\s*$/gm, (_, t) => `## ${t.trim()}`);
 
-  const isDiagramFence = (line: string) =>
-    /^```(?:mermaid|dot|graphviz|gv|wavedrom|wave|wavejson|vega-lite|vl)\b/.test(line);
-  const isTopLevelDiagramFence = (line: string) =>
-    isDiagramFence(line.trim()) && line.trim() === line;
-
   const fixedLines = s.split("\n");
   const result: string[] = [];
   let lastHeadingLevel = 3;
   let lastExplicitHeadingLevel = 3;
-  let needsSeparatorForList = false;
   let prevNonEmptyWasList = false;
   let inFence = false;
   let fenceMarker: string | null = null;
@@ -32,7 +26,6 @@ export function markmapNormalize(mdText: string): string {
 
   for (let i = 0; i < fixedLines.length; i++) {
     const line = fixedLines[i];
-    const nextLine = fixedLines[i + 1] || "";
 
     const fenceMatch = line.match(/^\s*(```+|~~~+)/);
     if (fenceMatch) {
@@ -73,45 +66,7 @@ export function markmapNormalize(mdText: string): string {
       lastHeadingLevel = headingMatch[1].length;
       lastExplicitHeadingLevel = lastHeadingLevel;
       prevNonEmptyWasList = false;
-
-      let hasListAfter = false;
-      let hasMermaidAfter = false;
-
-      for (let j = i + 1; j < fixedLines.length; j++) {
-        const rawCheckLine = fixedLines[j];
-        const checkLine = rawCheckLine.trim();
-        if (checkLine === "") continue;
-
-        if (checkLine.match(/^[-*+]\s+/)) {
-          hasListAfter = true;
-        } else if (isTopLevelDiagramFence(rawCheckLine) && hasListAfter) {
-          hasMermaidAfter = true;
-          break;
-        } else if (checkLine.match(/^#{1,6}\s+/)) {
-          break;
-        }
-      }
-
       result.push(line);
-
-      if (hasListAfter && hasMermaidAfter) {
-        needsSeparatorForList = true;
-        result.push("");
-        const separatorLevel = Math.min(lastHeadingLevel + 1, 6);
-        result.push("#".repeat(separatorLevel) + " Details");
-        result.push("");
-      } else if (hasListAfter) {
-        if (nextLine.match(/^[-*+]\s+/)) {
-          result.push("");
-        }
-      }
-      continue;
-    }
-
-    const listMatch = line.match(/^(\s*)[-*+]\s+/);
-    if (listMatch && needsSeparatorForList) {
-      result.push(line);
-      prevNonEmptyWasList = true;
       continue;
     }
 
@@ -150,18 +105,9 @@ export function markmapNormalize(mdText: string): string {
       const level = Math.min(lastExplicitHeadingLevel + 1, 6);
       result.push("#".repeat(level) + " " + para);
       lastHeadingLevel = level;
-      needsSeparatorForList = false;
       prevNonEmptyWasList = false;
       i = j - 1;
       continue;
-    }
-
-    if (needsSeparatorForList && isTopLevelDiagramFence(line)) {
-      const separatorLevel = Math.min(lastHeadingLevel + 1, 6);
-      result.push("");
-      result.push("#".repeat(separatorLevel) + " Diagram");
-      result.push("");
-      needsSeparatorForList = false;
     }
 
     result.push(line);

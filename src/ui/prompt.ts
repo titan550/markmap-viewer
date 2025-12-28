@@ -2,7 +2,8 @@ let promptCache: Promise<string> | null = null;
 
 async function loadPromptMd() {
   if (!promptCache) {
-    promptCache = fetch("/prompt.md").then(async (res) => {
+    const base = import.meta.env.BASE_URL || "/";
+    promptCache = fetch(`${base}prompt.md`).then(async (res) => {
       if (!res.ok) {
         throw new Error(`Failed to load prompt.md: ${res.status}`);
       }

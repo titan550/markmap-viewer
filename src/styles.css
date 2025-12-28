@@ -88,6 +88,12 @@ foreignObject img.math-line-img {
   display: inline-block;
   vertical-align: middle;
 }
+foreignObject img:not(.diagram-img):not(.math-img):not(.math-line-img):not(.mermaid-img) {
+  max-width: 200px;
+  max-height: 200px;
+  width: auto;
+  height: auto;
+}
 
 #toggleEditor {
   position: fixed;
