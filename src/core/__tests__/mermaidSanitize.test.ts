@@ -28,19 +28,19 @@ describe("sanitizeMermaidSourceLabels", () => {
   it("wraps flowchart node labels with markdown strings", () => {
     const src = "flowchart LR\nA[\"hello\"]";
     const out = sanitizeMermaidSourceLabels(src);
-    expect(out).toContain("A[\"`hello`\"]");
+    expect(out).toContain("A[\"hello\"]");
   });
 
   it("quotes unquoted labels and sanitizes them", () => {
     const src = "flowchart LR\nA[Long label]";
     const out = sanitizeMermaidSourceLabels(src);
-    expect(out).toContain('A["`Long label`"]');
+    expect(out).toContain('A["Long label"]');
   });
 
   it("wraps edge labels with markdown strings", () => {
     const src = "flowchart LR\nA -->|label| B";
     const out = sanitizeMermaidSourceLabels(src);
-    expect(out).toContain("|`label`|");
+    expect(out).toContain("|label|");
   });
 
   it("does not wrap ER edge labels", () => {
@@ -53,5 +53,35 @@ describe("sanitizeMermaidSourceLabels", () => {
     const src = "flowchart LR\nA -->|label| B";
     const out = sanitizeMermaidSourceLabels(src, { wrapEdgeLabels: false });
     expect(out).toContain("|label|");
+  });
+
+  it("normalizes diamond labels with quoted markdown strings", () => {
+    const src = "flowchart LR\nA{\"`Uncertain?`\"}";
+    const out = sanitizeMermaidSourceLabels(src);
+    expect(out).toContain('A{"Uncertain?"}');
+  });
+
+  it("decodes entity escapes in flowchart labels", () => {
+    const src = "flowchart LR\nA[\"`1#41; Plan\\nline`\"]";
+    const out = sanitizeMermaidSourceLabels(src);
+    expect(out).toContain("1) Plan<br/>line");
+  });
+
+  it("sanitizes sequence diagram message labels", () => {
+    const src = "sequenceDiagram\nA->>B: \"`Line1\\nLine2 #32;`\"";
+    const out = sanitizeMermaidSourceLabels(src);
+    expect(out).toContain(": \"Line1<br/>Line2  \"");
+  });
+
+  it("sanitizes state diagram edge labels", () => {
+    const src = "stateDiagram-v2\nBuild --> Assess: \"tests#47;reviews\"";
+    const out = sanitizeMermaidSourceLabels(src);
+    expect(out).toContain(": \"tests/reviews\"");
+  });
+
+  it("preserves quoted stadium labels with markdown strings", () => {
+    const src = "flowchart LR\nSTART([\"`Hello`\"])\n";
+    const out = sanitizeMermaidSourceLabels(src);
+    expect(out).toContain("START([\"Hello\"])");
   });
 });

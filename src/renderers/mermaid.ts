@@ -12,12 +12,12 @@ function ensureMermaidInit() {
   mermaid.initialize({
     startOnLoad: false,
     htmlLabels: false,
-    markdownAutoWrap: true,
-    wrap: true,
+    markdownAutoWrap: false,
+    wrap: false,
     flowchart: {
       htmlLabels: false,
       useMaxWidth: false,
-      wrappingWidth: 340,
+      wrappingWidth: 10000,
     },
   });
   mermaidInitialized = true;
@@ -32,7 +32,7 @@ export const mermaidRenderer: Renderer = {
     if (!mermaid?.render) throw new Error("Mermaid is not available");
     const isERDiagram = /^\s*erDiagram\b/m.test(src);
     const cleaned = sanitizeMermaidSourceLabels(src, {
-      lineBreak: "\n",
+      lineBreak: "<br/>",
       preserveExisting: true,
       normalizeHtmlEntities: true,
       useNamedColon: true,
