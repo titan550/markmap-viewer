@@ -2,10 +2,10 @@ import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 
-const map1Path = path.join(process.cwd(), "test", "map1.md");
-const map1Text = fs.readFileSync(map1Path, "utf8");
+const fixturePath = path.join(process.cwd(), "test", "fixtures_core.md");
+const fixtureText = fs.readFileSync(fixturePath, "utf8");
 
-async function loadMap1(page) {
+async function loadFixture(page) {
   await page.goto("/");
   await page.waitForSelector("#paste", { state: "attached" });
   await page.evaluate((text) => {
@@ -13,13 +13,13 @@ async function loadMap1(page) {
     if (!paste) return;
     paste.value = text;
     paste.dispatchEvent(new Event("input", { bubbles: true }));
-  }, map1Text);
+  }, fixtureText);
   await page.waitForTimeout(2500);
 }
 
-test.describe("map1.md render", () => {
+test.describe("fixtures_core.md render", () => {
   test("renders diagrams and math", async ({ page }) => {
-    await loadMap1(page);
+    await loadFixture(page);
     await page.waitForFunction(() => {
       const diagramImgs = document.querySelectorAll("img.diagram-img").length;
       const mermaidImgs = document.querySelectorAll("img.mermaid-img").length;

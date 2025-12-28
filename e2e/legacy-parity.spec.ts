@@ -2,11 +2,11 @@ import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 
-const map1Path = path.join(process.cwd(), "test", "map1.md");
-const map1Text = fs.readFileSync(map1Path, "utf8");
+const fixturePath = path.join(process.cwd(), "test", "fixtures_core.md");
+const fixtureText = fs.readFileSync(fixturePath, "utf8");
 const legacyFileUrl = `file://${path.join(process.cwd(), "legacy", "index.html")}`;
 
-async function loadMap1(page, url) {
+async function loadFixture(page, url) {
   const targetUrl = url === "legacy" ? legacyFileUrl : url;
   await page.goto(targetUrl);
   await page.waitForSelector("#paste", { state: "attached" });
@@ -15,7 +15,7 @@ async function loadMap1(page, url) {
     if (!paste) return;
     paste.value = text;
     paste.dispatchEvent(new Event("input", { bubbles: true }));
-  }, map1Text);
+  }, fixtureText);
   await page.waitForTimeout(2500);
 }
 
@@ -34,8 +34,8 @@ test.describe("legacy parity (transitional)", () => {
     // Transitional parity test: remove once refactor is fully trusted.
     const legacyPage = await context.newPage();
 
-    await loadMap1(legacyPage, "legacy");
-    await loadMap1(page, "/");
+    await loadFixture(legacyPage, "legacy");
+    await loadFixture(page, "/");
 
     const legacyCounts = await getCounts(legacyPage);
     const currentCounts = await getCounts(page);
