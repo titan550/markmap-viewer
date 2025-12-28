@@ -62,6 +62,21 @@ foreignObject img.diagram-img {
   max-width: 100%;
   height: auto;
 }
+foreignObject .diagram-wrap {
+  display: inline-block;
+  line-height: 0;
+  vertical-align: top;
+}
+/* Safari: block elements in foreignObject render at SVG root; use inline-block */
+foreignObject div,
+foreignObject p {
+  display: inline-block;
+  margin: 0;
+}
+foreignObject img.diagram-img {
+  display: inline-block;
+  vertical-align: top;
+}
 foreignObject img.math-img {
   display: inline-block;
   vertical-align: middle;

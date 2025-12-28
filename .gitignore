@@ -25,3 +25,10 @@ test-results
 *.njsproj
 *.sln
 *.sw?
+
+# Playwright MCP screenshots
+.playwright-mcp/
+
+# Claude generated files
+CLAUDE.md
+TODO.md

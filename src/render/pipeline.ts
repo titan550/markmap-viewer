@@ -2,9 +2,34 @@ import { markmapNormalize } from "../core/markmapNormalize";
 import { revokeBlobs } from "./blobs";
 import { preRenderDiagramFencesToImages } from "./diagrams";
 import { nextFrames } from "./frames";
-import { preloadImages } from "./images";
+import { preloadImages, waitForDomImages } from "./images";
 import { preRenderMathLinesToImages, preRenderMathToImages, renderInlineMarkdown } from "./math";
 import type { MarkmapInstance, MarkmapTransformer } from "../types/markmap";
+
+/**
+ * Unwrap <p> tags around diagram images to fix Safari foreignObject rendering.
+ * Safari renders <p> elements inside foreignObject at the SVG root (0,0).
+ */
+export function fixSafariForeignObjectParagraphs(svg: Element): void {
+  const paragraphs = svg.querySelectorAll("foreignObject p");
+  paragraphs.forEach((p) => {
+    const children = Array.from(p.childNodes).filter(
+      (node) => node.nodeType !== Node.TEXT_NODE || node.textContent?.trim()
+    );
+    if (children.length === 1 && children[0] instanceof Element) {
+      const child = children[0];
+      if (child.classList.contains("diagram-wrap") || child.querySelector(".diagram-wrap")) {
+        const parent = p.parentNode;
+        if (parent) {
+          while (p.firstChild) {
+            parent.insertBefore(p.firstChild, p);
+          }
+          parent.removeChild(p);
+        }
+      }
+    }
+  });
+}
 
 export type RenderPipelineDeps = {
   transformer: MarkmapTransformer;
@@ -59,14 +84,28 @@ export function createRenderPipeline(deps: RenderPipelineDeps): RenderPipeline {
       }
       revokeBlobs(activeBlobUrls);
       activeBlobUrls = [...mathLinePre.blobUrls, ...diagramPre.blobUrls];
+      const hasImages = activeBlobUrls.length > 0;
 
       const { root } = transformer.transform(diagramPre.mdOut);
       await preloadImages(activeBlobUrls, shouldContinue);
       if (!shouldContinue()) return;
       await mm.setData(root);
-
       await nextFrames(2);
       if (!shouldContinue()) return;
+
+      const svg = document.querySelector("#mindmap");
+      if (svg) {
+        fixSafariForeignObjectParagraphs(svg);
+      }
+
+      if (hasImages && svg) {
+        await waitForDomImages(svg, shouldContinue);
+        if (!shouldContinue()) return;
+        await mm.setData(root);
+        await nextFrames(1);
+        if (!shouldContinue()) return;
+        fixSafariForeignObjectParagraphs(svg);
+      }
 
       mm.fit();
       hideOverlayOnce();

@@ -80,7 +80,10 @@ export async function preRenderDiagramFencesToImages(
     const finalHeight = Number.isFinite(height) && height > 0 ? Math.ceil(height) : 240;
     const imgClass = className || "diagram-img";
     const imgAlt = alt || `${renderer.name} diagram`;
-    const imgHtml = `<img class="${imgClass}" alt="${imgAlt}" src="${url}" width="${finalWidth}" height="${finalHeight}" style="width:${finalWidth}px;height:${finalHeight}px;">`;
+    // No position:absolute - Safari renders positioned elements at SVG root in foreignObject
+    const wrapStyle = `display:inline-block;width:${finalWidth}px;height:${finalHeight}px;line-height:0;vertical-align:top;`;
+    const imgStyle = `display:block;width:${finalWidth}px;height:${finalHeight}px;`;
+    const imgHtml = `<span class="diagram-wrap" style="${wrapStyle}"><img class="${imgClass}" alt="${imgAlt}" src="${url}" width="${finalWidth}" height="${finalHeight}" style="${imgStyle}"></span>`;
     if (listCtx.isList) {
       const inlineOut = appendInlineToLastListItem(out, imgHtml);
       if (inlineOut !== null) {

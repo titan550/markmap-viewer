@@ -16,6 +16,30 @@ export async function preloadImages(urls: string[], shouldContinue: () => boolea
   }
 }
 
+export async function waitForDomImages(root: ParentNode, shouldContinue: () => boolean): Promise<void> {
+  if (!root) return;
+  const imgs = Array.from(root.querySelectorAll("img"));
+  if (!imgs.length) return;
+  await Promise.all(
+    imgs.map((img) => {
+      if (!shouldContinue()) return Promise.resolve();
+      if (img.complete) return Promise.resolve();
+      if (img.decode) {
+        return img.decode().catch(() => undefined);
+      }
+      return new Promise<void>((resolve) => {
+        const done = () => {
+          img.removeEventListener("load", done);
+          img.removeEventListener("error", done);
+          resolve();
+        };
+        img.addEventListener("load", done);
+        img.addEventListener("error", done);
+      });
+    })
+  );
+}
+
 export async function svgToPngBlob(svgText: string, width: number, height: number, scale = 1): Promise<Blob> {
   const svgBlob = new Blob([svgText], { type: "image/svg+xml" });
   const url = URL.createObjectURL(svgBlob);

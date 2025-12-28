@@ -36,6 +36,48 @@ async function loadMarkdown(page, text: string) {
   await page.waitForTimeout(2500);
 }
 
+test.describe("Safari foreignObject positioning", () => {
+  test("consecutive mermaid diagrams render at different positions", async ({ page }) => {
+    const markdown = `## Test Section
+
+\`\`\`mermaid
+flowchart LR
+  A[First] --> B[Second]
+\`\`\`
+
+\`\`\`mermaid
+flowchart LR
+  C[Third] --> D[Fourth]
+\`\`\`
+`;
+
+    await loadMarkdown(page, markdown);
+
+    await page.waitForFunction(
+      () => document.querySelectorAll("img.mermaid-img").length >= 2,
+      { timeout: 30000 }
+    );
+
+    // Diagrams should not be wrapped in <p> tags (causes Safari rendering bug)
+    const pWrappedDiagrams = await page.evaluate(() =>
+      document.querySelectorAll("foreignObject p .diagram-wrap").length
+    );
+    expect(pWrappedDiagrams).toBe(0);
+
+    // Diagrams should be at different Y positions, not clustered at top
+    const positions = await page.evaluate(() =>
+      Array.from(document.querySelectorAll("foreignObject img.mermaid-img")).map((img) => {
+        const rect = img.getBoundingClientRect();
+        return { x: rect.x, y: rect.y };
+      })
+    );
+
+    expect(positions.length).toBe(2);
+    const yDiff = Math.abs(positions[0].y - positions[1].y);
+    expect(yDiff).toBeGreaterThan(50);
+  });
+});
+
 test.describe("fixture markdown render", () => {
   test.setTimeout(90000);
   for (const file of fixtureFiles) {
@@ -70,6 +112,18 @@ test.describe("fixture markdown render", () => {
 
       expect(counts.diagramImgs).toBeGreaterThanOrEqual(expectedDiagrams);
       expect(counts.mermaidImgs).toBeGreaterThanOrEqual(expectedMermaid);
+
+      if (counts.diagramImgs > 1) {
+        const positions = await page.evaluate(() =>
+          Array.from(document.querySelectorAll("foreignObject img.diagram-img")).map((img) => {
+            const rect = img.getBoundingClientRect();
+            return { x: rect.x, y: rect.y };
+          })
+        );
+        const ys = positions.map((pos) => pos.y);
+        const spread = Math.max(...ys) - Math.min(...ys);
+        expect(spread).toBeGreaterThan(20);
+      }
     });
   }
 });
