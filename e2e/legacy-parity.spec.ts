@@ -21,7 +21,7 @@ async function loadFixture(page, url) {
 
 async function getCounts(page) {
   return await page.evaluate(() => ({
-    totalImgs: document.querySelectorAll("img").length,
+    totalImgs: document.querySelectorAll("#mindmap img").length,
     diagramImgs: document.querySelectorAll("img.diagram-img").length,
     mermaidImgs: document.querySelectorAll("img.mermaid-img").length,
     mathImgs: document.querySelectorAll("img.math-img").length,
