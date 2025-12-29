@@ -11,6 +11,7 @@ export type DomRefs = {
   resizeHandle: HTMLElement;
   charCount: HTMLElement;
   autofixBtn: HTMLButtonElement;
+  pasteClipboardBtn: HTMLButtonElement;
 };
 
 export function getDomRefs(): DomRefs {
@@ -33,5 +34,6 @@ export function getDomRefs(): DomRefs {
     resizeHandle: get<HTMLElement>("#resizeHandle"),
     charCount: get<HTMLElement>("#charCount"),
     autofixBtn: get<HTMLButtonElement>("#autofix"),
+    pasteClipboardBtn: get<HTMLButtonElement>("#pasteClipboard"),
   };
 }

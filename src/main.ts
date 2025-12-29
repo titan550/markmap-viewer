@@ -22,6 +22,7 @@ const {
   resizeHandle,
   charCount,
   autofixBtn,
+  pasteClipboardBtn,
 } = refs;
 
 const mmapi = window.markmap as MarkmapAPI | undefined;
@@ -78,6 +79,18 @@ render = createRenderPipeline({
 
 setupPrompt(copyPromptBtn);
 setupExampleButton(exampleBtn, pasteEl, render);
+
+pasteClipboardBtn.addEventListener("click", async () => {
+  try {
+    const text = await navigator.clipboard.readText();
+    if (text) {
+      applyPasteText(text, pasteEl, render, true);
+    }
+  } catch {
+    pasteEl.focus();
+    pasteEl.select();
+  }
+});
 
 autofixBtn.addEventListener("click", () => {
   const current = editorApi.getValue();

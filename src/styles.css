@@ -21,20 +21,7 @@ body { overflow: hidden; font-family: ui-sans-serif, system-ui, -apple-system, S
   background: rgba(255,255,255,.92);
   box-shadow: 0 10px 30px rgba(0,0,0,.12);
 }
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-.card-header .logo {
-  width: 32px;
-  height: 32px;
-}
-.card-header h1 {
-  margin: 0;
-}
-h1 { margin: 0 0 10px; font-size: 18px; font-weight: 650; }
+.card h1 { margin: 0 0 14px; font-size: 18px; font-weight: 650; text-align: center; }
 .github-link {
   display: inline-flex;
   align-items: center;
@@ -63,9 +50,7 @@ textarea {
 textarea:focus { border-color: rgba(74,158,255,.9); }
 
 .hidden { opacity: 0; pointer-events: none; }
-.row { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-top: 10px; }
-.button-group { display: inline-flex; gap: 8px; align-items: center; }
-.hint { font-size: 12px; opacity: .7; }
+.button-row { display: flex; gap: 8px; align-items: center; justify-content: center; margin-top: 12px; }
 button {
   appearance: none;
   border: 1px solid rgba(127,127,127,.35);

@@ -31,3 +31,5 @@ export function setupPrompt(copyPromptBtn: HTMLButtonElement) {
     setTimeout(() => { copyPromptBtn.textContent = original || "Copy Prompt"; }, 1200);
   });
 }
+
+loadPromptMd();
