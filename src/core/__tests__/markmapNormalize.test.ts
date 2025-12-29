@@ -19,4 +19,26 @@ describe("markmapNormalize", () => {
     const output = markmapNormalize(input);
     expect(output).toContain("```mermaid\nflowchart LR\nA-->B\n```");
   });
+
+  it("converts loose lists to tight lists", () => {
+    const input = `- Item 1
+
+- Item 2
+
+- Item 3`;
+    const output = markmapNormalize(input);
+    expect(output).not.toContain("\n\n-");
+    expect(output).toContain("- Item 1\n- Item 2\n- Item 3");
+  });
+
+  it("removes blank line after code fence before list item", () => {
+    const input = `- Item with fence
+  \`\`\`mermaid
+  flowchart LR
+  \`\`\`
+
+- Next item`;
+    const output = markmapNormalize(input);
+    expect(output).not.toMatch(/```\n\n-/);
+  });
 });

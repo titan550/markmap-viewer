@@ -10,6 +10,7 @@ export type DomRefs = {
   editorTextarea: HTMLTextAreaElement;
   resizeHandle: HTMLElement;
   charCount: HTMLElement;
+  autofixBtn: HTMLButtonElement;
 };
 
 export function getDomRefs(): DomRefs {
@@ -31,5 +32,6 @@ export function getDomRefs(): DomRefs {
     editorTextarea: get<HTMLTextAreaElement>("#editorTextarea"),
     resizeHandle: get<HTMLElement>("#resizeHandle"),
     charCount: get<HTMLElement>("#charCount"),
+    autofixBtn: get<HTMLButtonElement>("#autofix"),
   };
 }

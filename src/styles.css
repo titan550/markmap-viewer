@@ -21,7 +21,32 @@ body { overflow: hidden; font-family: ui-sans-serif, system-ui, -apple-system, S
   background: rgba(255,255,255,.92);
   box-shadow: 0 10px 30px rgba(0,0,0,.12);
 }
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.card-header .logo {
+  width: 32px;
+  height: 32px;
+}
+.card-header h1 {
+  margin: 0;
+}
 h1 { margin: 0 0 10px; font-size: 18px; font-weight: 650; }
+.github-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 10px;
+  border: 1px solid rgba(127,127,127,.35);
+  border-radius: 10px;
+  font-size: 12.5px;
+  text-decoration: none;
+  color: inherit;
+  background: transparent;
+}
+.github-link:hover { background: rgba(127,127,127,.08); }
 p { margin: 0 0 10px; font-size: 13px; opacity: .8; line-height: 1.4; }
 textarea {
   width: 100%;
@@ -96,6 +121,7 @@ foreignObject img:not(.diagram-img):not(.math-img):not(.math-line-img):not(.merm
 }
 
 #toggleEditor {
+  display: none;
   position: fixed;
   top: 16px;
   left: 16px;
@@ -148,6 +174,16 @@ foreignObject img:not(.diagram-img):not(.math-img):not(.math-line-img):not(.merm
   margin: 0;
   font-size: 15px;
   font-weight: 600;
+}
+.editor-header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#autofix {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 6px;
 }
 #closeEditor {
   appearance: none;
@@ -214,8 +250,19 @@ foreignObject img:not(.diagram-img):not(.math-img):not(.math-line-img):not(.merm
 .CodeMirror .cm-variable-3 { color: #6f42c1 !important; }
 .CodeMirror-cursor { border-left-color: #333 !important; }
 .CodeMirror-dialog {
+  position: relative !important;
   z-index: 30;
-  background: rgba(255,255,255,.9);
+  background: rgba(255,255,255,1) !important;
+  border-bottom: 1px solid rgba(127,127,127,.25);
+  padding: 8px 12px;
+  margin-bottom: 4px;
+}
+.CodeMirror-dialog input {
+  font-size: 13px;
+  padding: 4px 8px;
+  border: 1px solid rgba(127,127,127,.35);
+  border-radius: 4px;
+  background: white;
 }
 
 .editor-footer {

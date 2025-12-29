@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Paste → Markmap (+ Mermaid)</title>
+  <title>Paste → Markmap</title>
+  <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="stylesheet" href="/src/styles.css" />
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/markmap-toolbar@0.18.12/dist/style.css">
@@ -18,7 +19,10 @@
   <div id="editorPanel">
     <div class="editor-header">
       <h2>Markdown Editor</h2>
-      <button id="closeEditor" type="button" aria-label="Close Editor">×</button>
+      <div class="editor-header-buttons">
+        <button id="autofix" type="button">Autofix</button>
+        <button id="closeEditor" type="button" aria-label="Close Editor">×</button>
+      </div>
     </div>
     <textarea id="editorTextarea" placeholder="# Your Markdown Here
 ## Add headings, lists, and Mermaid diagrams
@@ -35,8 +39,11 @@ flowchart TB
 
   <div id="overlay" class="overlay">
     <div class="card">
-      <h1>Paste Markdown → Mindmap (+ Mermaid)</h1>
-      <p>Pre-render Mermaid → Markmap render → fit.</p>
+      <div class="card-header">
+        <img src="/favicon.png" alt="markmap logo" class="logo" />
+        <h1>Paste Markdown → Mindmap</h1>
+      </div>
+      <p>Visualize markdown as an interactive mindmap with support for diagrams and math.</p>
       <textarea id="paste" placeholder="# Title
 ## Node with Mermaid
 ```mermaid
@@ -44,10 +51,11 @@ flowchart TB
   A[&quot;Long label that should wrap and not spill out to the right in the Mermaid node&quot;] --> B[Done]
 ```"></textarea>
       <div class="row">
-        <div class="hint">Copy Markmap-formatted text here.</div>
+        <div class="hint">Paste Markmap-formatted text here.</div>
         <div class="button-group">
           <button id="copyPrompt" type="button">Copy Prompt</button>
           <button id="example" type="button">Example</button>
+          <a href="https://github.com/titan550/markmap-viewer" target="_blank" rel="noopener" class="github-link">GitHub</a>
         </div>
       </div>
     </div>

@@ -117,5 +117,12 @@ export function markmapNormalize(mdText: string): string {
   }
 
   s = result.join("\n");
+
+  // Convert loose lists to tight lists by removing blank lines between list items
+  // This prevents Safari foreignObject rendering issues with <p> tags
+  s = s.replace(/^(\s*(?:[-*+]|\d+\.)\s+.*)$\n\n(?=\s*(?:[-*+]|\d+\.)\s+)/gm, "$1\n");
+  // Also handle: fence close followed by blank line before list item
+  s = s.replace(/^(\s*```)\n\n(?=\s*(?:[-*+]|\d+\.)\s+)/gm, "$1\n");
+
   return s.replace(/\n{3,}/g, "\n\n").trim() + "\n";
 }

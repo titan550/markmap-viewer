@@ -31,7 +31,8 @@ function makeDeps() {
   const mindmapEl = document.createElement("svg");
   mindmapEl.id = "mindmap";
   document.body.appendChild(mindmapEl);
-  return { overlayEl, pasteEl, setEditorValue, transformer, mm, mindmapEl };
+  const toggleEditorBtn = document.createElement("button");
+  return { overlayEl, pasteEl, setEditorValue, transformer, mm, mindmapEl, toggleEditorBtn };
 }
 
 describe("render pipeline", () => {
@@ -45,7 +46,7 @@ describe("render pipeline", () => {
   });
 
   it("renders and hides overlay", async () => {
-    const { overlayEl, pasteEl, setEditorValue, transformer, mm } = makeDeps();
+    const { overlayEl, pasteEl, setEditorValue, transformer, mm, toggleEditorBtn } = makeDeps();
     pasteEl.value = "# Title";
     const pipeline = createRenderPipeline({
       transformer,
@@ -53,6 +54,7 @@ describe("render pipeline", () => {
       overlayEl,
       pasteEl,
       setEditorValue,
+      toggleEditorBtn,
     });
 
     await pipeline.render("# Title");
@@ -64,13 +66,14 @@ describe("render pipeline", () => {
   });
 
   it("skips empty input", async () => {
-    const { overlayEl, pasteEl, setEditorValue, transformer, mm } = makeDeps();
+    const { overlayEl, pasteEl, setEditorValue, transformer, mm, toggleEditorBtn } = makeDeps();
     const pipeline = createRenderPipeline({
       transformer,
       mm,
       overlayEl,
       pasteEl,
       setEditorValue,
+      toggleEditorBtn,
     });
 
     await pipeline.render("   ");
@@ -79,13 +82,14 @@ describe("render pipeline", () => {
   });
 
   it("revokes math blobs when math line render cancels", async () => {
-    const { overlayEl, pasteEl, setEditorValue, transformer, mm } = makeDeps();
+    const { overlayEl, pasteEl, setEditorValue, transformer, mm, toggleEditorBtn } = makeDeps();
     const pipeline = createRenderPipeline({
       transformer,
       mm,
       overlayEl,
       pasteEl,
       setEditorValue,
+      toggleEditorBtn,
     });
     const mathPre = vi.mocked(preRenderMathToImages);
     const mathLines = vi.mocked(preRenderMathLinesToImages);
@@ -97,13 +101,14 @@ describe("render pipeline", () => {
   });
 
   it("revokes math line blobs when diagram render cancels", async () => {
-    const { overlayEl, pasteEl, setEditorValue, transformer, mm } = makeDeps();
+    const { overlayEl, pasteEl, setEditorValue, transformer, mm, toggleEditorBtn } = makeDeps();
     const pipeline = createRenderPipeline({
       transformer,
       mm,
       overlayEl,
       pasteEl,
       setEditorValue,
+      toggleEditorBtn,
     });
     const mathPre = vi.mocked(preRenderMathToImages);
     const mathLines = vi.mocked(preRenderMathLinesToImages);
@@ -151,7 +156,7 @@ describe("fixSafariForeignObjectParagraphs", () => {
     expect(svg.querySelector("foreignObject .diagram-wrap")).not.toBeNull();
   });
 
-  it("preserves p tags containing text content", () => {
+  it("unwraps p tags containing text content", () => {
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.innerHTML = `
       <foreignObject>
@@ -163,11 +168,11 @@ describe("fixSafariForeignObjectParagraphs", () => {
 
     fixSafariForeignObjectParagraphs(svg);
 
-    expect(svg.querySelector("foreignObject p")).not.toBeNull();
-    expect(svg.querySelector("foreignObject p")?.textContent).toBe("Some text content");
+    expect(svg.querySelector("foreignObject p")).toBeNull();
+    expect(svg.querySelector("foreignObject div")?.textContent).toContain("Some text content");
   });
 
-  it("preserves p tags containing mixed content", () => {
+  it("unwraps p tags containing mixed content", () => {
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.innerHTML = `
       <foreignObject>
@@ -179,10 +184,12 @@ describe("fixSafariForeignObjectParagraphs", () => {
 
     fixSafariForeignObjectParagraphs(svg);
 
-    expect(svg.querySelector("foreignObject p")).not.toBeNull();
+    expect(svg.querySelector("foreignObject p")).toBeNull();
+    expect(svg.querySelector("foreignObject div")?.textContent).toContain("Text and");
+    expect(svg.querySelector("foreignObject .diagram-wrap")).not.toBeNull();
   });
 
-  it("handles multiple foreignObjects", () => {
+  it("unwraps all p tags in multiple foreignObjects", () => {
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.innerHTML = `
       <foreignObject>
@@ -192,15 +199,13 @@ describe("fixSafariForeignObjectParagraphs", () => {
         <div><p><span class="diagram-wrap"><img src="blob:2" /></span></p></div>
       </foreignObject>
       <foreignObject>
-        <div><p>Keep this text</p></div>
+        <div><p>Some text</p></div>
       </foreignObject>
     `;
 
     fixSafariForeignObjectParagraphs(svg);
 
-    const paragraphs = svg.querySelectorAll("foreignObject p");
-    expect(paragraphs.length).toBe(1);
-    expect(paragraphs[0].textContent).toBe("Keep this text");
+    expect(svg.querySelectorAll("foreignObject p").length).toBe(0);
     expect(svg.querySelectorAll("foreignObject .diagram-wrap").length).toBe(2);
   });
 

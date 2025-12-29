@@ -24,10 +24,4 @@ export function setupToolbar(
     },
     { passive: false }
   );
-
-  const toolbarEl = toolbar.render();
-  toolbarEl.style.position = "absolute";
-  toolbarEl.style.right = "16px";
-  toolbarEl.style.bottom = "16px";
-  document.body.appendChild(toolbarEl);
 }

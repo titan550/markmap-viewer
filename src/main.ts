@@ -5,6 +5,7 @@ import { setupPrompt } from "./ui/prompt";
 import { applyPasteText, getPasteMarkdown } from "./ui/paste";
 import { setupToolbar } from "./ui/toolbar";
 import { createRenderPipeline } from "./render/pipeline";
+import { autofixMarkdown } from "./core/autofix";
 import type { MarkmapAPI } from "./types/markmap";
 
 const refs = getDomRefs();
@@ -20,6 +21,7 @@ const {
   editorTextarea,
   resizeHandle,
   charCount,
+  autofixBtn,
 } = refs;
 
 const mmapi = window.markmap as MarkmapAPI | undefined;
@@ -71,10 +73,20 @@ render = createRenderPipeline({
   overlayEl,
   pasteEl,
   setEditorValue: (value) => editorApi.setValue(value),
+  toggleEditorBtn,
 }).render;
 
 setupPrompt(copyPromptBtn);
 setupExampleButton(exampleBtn, pasteEl, render);
+
+autofixBtn.addEventListener("click", () => {
+  const current = editorApi.getValue();
+  if (current) {
+    const fixed = autofixMarkdown(current);
+    editorApi.setValue(fixed);
+    render(fixed);
+  }
+});
 
 pasteEl.addEventListener("paste", async (ev) => {
   ev.preventDefault();

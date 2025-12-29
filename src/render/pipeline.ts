@@ -7,26 +7,18 @@ import { preRenderMathLinesToImages, preRenderMathToImages, renderInlineMarkdown
 import type { MarkmapInstance, MarkmapTransformer } from "../types/markmap";
 
 /**
- * Unwrap <p> tags around diagram images to fix Safari foreignObject rendering.
+ * Unwrap all <p> tags to fix Safari foreignObject rendering.
  * Safari renders <p> elements inside foreignObject at the SVG root (0,0).
  */
 export function fixSafariForeignObjectParagraphs(svg: Element): void {
   const paragraphs = svg.querySelectorAll("foreignObject p");
   paragraphs.forEach((p) => {
-    const children = Array.from(p.childNodes).filter(
-      (node) => node.nodeType !== Node.TEXT_NODE || node.textContent?.trim()
-    );
-    if (children.length === 1 && children[0] instanceof Element) {
-      const child = children[0];
-      if (child.classList.contains("diagram-wrap") || child.querySelector(".diagram-wrap")) {
-        const parent = p.parentNode;
-        if (parent) {
-          while (p.firstChild) {
-            parent.insertBefore(p.firstChild, p);
-          }
-          parent.removeChild(p);
-        }
+    const parent = p.parentNode;
+    if (parent) {
+      while (p.firstChild) {
+        parent.insertBefore(p.firstChild, p);
       }
+      parent.removeChild(p);
     }
   });
 }
@@ -37,6 +29,7 @@ export type RenderPipelineDeps = {
   overlayEl: HTMLElement;
   pasteEl: HTMLTextAreaElement;
   setEditorValue: (value: string) => void;
+  toggleEditorBtn: HTMLButtonElement;
 };
 
 export type RenderPipeline = {
@@ -44,7 +37,7 @@ export type RenderPipeline = {
 };
 
 export function createRenderPipeline(deps: RenderPipelineDeps): RenderPipeline {
-  const { transformer, mm, overlayEl, pasteEl, setEditorValue } = deps;
+  const { transformer, mm, overlayEl, pasteEl, setEditorValue, toggleEditorBtn } = deps;
   let renderedOnce = false;
   let pending = 0;
   let activeBlobUrls: string[] = [];
@@ -52,6 +45,7 @@ export function createRenderPipeline(deps: RenderPipelineDeps): RenderPipeline {
   const hideOverlayOnce = () => {
     if (!renderedOnce) {
       overlayEl.classList.add("hidden");
+      toggleEditorBtn.style.display = "block";
       renderedOnce = true;
 
       if (pasteEl.value) {
