@@ -58,6 +58,12 @@ flowchart LR
       { timeout: 30000 }
     );
 
+    // Wait for <p> unwrapping to complete (fixSafariForeignObjectParagraphs runs after render)
+    await page.waitForFunction(
+      () => document.querySelectorAll("foreignObject p .diagram-wrap").length === 0,
+      { timeout: 5000 }
+    );
+
     // Diagrams should not be wrapped in <p> tags (causes Safari rendering bug)
     const pWrappedDiagrams = await page.evaluate(() =>
       document.querySelectorAll("foreignObject p .diagram-wrap").length
