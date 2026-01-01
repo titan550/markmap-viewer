@@ -24,12 +24,10 @@ test.describe("fixtures_core.md render", () => {
       const diagramImgs = document.querySelectorAll("img.diagram-img").length;
       const mermaidImgs = document.querySelectorAll("img.mermaid-img").length;
       const mathImgs = document.querySelectorAll("img.math-img").length;
-      const mathLineImgs = document.querySelectorAll("img.math-line-img").length;
       return (
         diagramImgs >= 10 &&
         mermaidImgs >= 8 &&
-        mathImgs >= 2 &&
-        mathLineImgs >= 3
+        mathImgs >= 5
       );
     }, null, { timeout: 25000 });
 
@@ -37,12 +35,10 @@ test.describe("fixtures_core.md render", () => {
       diagramImgs: document.querySelectorAll("img.diagram-img").length,
       mermaidImgs: document.querySelectorAll("img.mermaid-img").length,
       mathImgs: document.querySelectorAll("img.math-img").length,
-      mathLineImgs: document.querySelectorAll("img.math-line-img").length,
     }));
 
     expect(counts.diagramImgs).toBeGreaterThanOrEqual(10);
     expect(counts.mermaidImgs).toBeGreaterThanOrEqual(8);
-    expect(counts.mathImgs).toBeGreaterThanOrEqual(2);
-    expect(counts.mathLineImgs).toBeGreaterThanOrEqual(3);
+    expect(counts.mathImgs).toBeGreaterThanOrEqual(5);
   });
 });

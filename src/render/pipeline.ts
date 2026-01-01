@@ -3,7 +3,7 @@ import { revokeBlobs } from "./blobs";
 import { preRenderDiagramFencesToImages } from "./diagrams";
 import { nextFrames } from "./frames";
 import { preloadImages, waitForDomImages } from "./images";
-import { preRenderMathLinesToImages, preRenderMathToImages, renderInlineMarkdown } from "./math";
+import { preRenderMathToImages } from "./math";
 import type { MarkmapInstance, MarkmapTransformer } from "../types/markmap";
 
 /**
@@ -65,19 +65,10 @@ export function createRenderPipeline(deps: RenderPipelineDeps): RenderPipeline {
       const normalized = markmapNormalize(text);
       const mathPre = await preRenderMathToImages(normalized, shouldContinue);
       if (!mathPre || !shouldContinue()) return;
-      const inlineRenderer = (line: string) => renderInlineMarkdown(line, transformer);
-      const mathLinePre = await preRenderMathLinesToImages(mathPre.mdOut, mathPre.blobUrls, shouldContinue, inlineRenderer);
-      if (!mathLinePre || !shouldContinue()) {
-        revokeBlobs(mathPre.blobUrls);
-        return;
-      }
-      const diagramPre = await preRenderDiagramFencesToImages(mathLinePre.mdOut, token, shouldContinue);
-      if (!diagramPre || !shouldContinue()) {
-        revokeBlobs(mathLinePre.blobUrls);
-        return;
-      }
+      const diagramPre = await preRenderDiagramFencesToImages(mathPre.mdOut, token, shouldContinue);
+      if (!diagramPre || !shouldContinue()) return;
       revokeBlobs(activeBlobUrls);
-      activeBlobUrls = [...mathLinePre.blobUrls, ...diagramPre.blobUrls];
+      activeBlobUrls = diagramPre.blobUrls;
       const hasImages = activeBlobUrls.length > 0;
 
       const { root } = transformer.transform(diagramPre.mdOut);

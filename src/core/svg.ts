@@ -62,3 +62,11 @@ export function setSvgPixelSize(svgText: string, width: number, height: number):
     return `<svg${next} width="${width}" height="${height}" style="width:${width}px;height:${height}px;">`;
   });
 }
+
+export function svgToDataUrl(svgText: string): string {
+  const cleaned = svgText.replace(/<\?xml[^>]*\?>\s*/i, "");
+  const encoded = encodeURIComponent(cleaned)
+    .replace(/'/g, "%27")
+    .replace(/"/g, "%22");
+  return `data:image/svg+xml,${encoded}`;
+}

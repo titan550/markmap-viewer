@@ -4,9 +4,7 @@ vi.mock("../diagrams", () => ({
   preRenderDiagramFencesToImages: vi.fn(async (md: string) => ({ mdOut: md, blobUrls: ["blob:diagram"] })),
 }));
 vi.mock("../math", () => ({
-  preRenderMathToImages: vi.fn(async (md: string) => ({ mdOut: md, blobUrls: ["blob:math"] })),
-  preRenderMathLinesToImages: vi.fn(async (md: string, urls: string[]) => ({ mdOut: md, blobUrls: urls })),
-  renderInlineMarkdown: vi.fn((text: string) => text),
+  preRenderMathToImages: vi.fn(async (md: string) => ({ mdOut: md })),
 }));
 vi.mock("../images", () => ({
   preloadImages: vi.fn(async () => {}),
@@ -18,8 +16,7 @@ vi.mock("../blobs", () => ({
 
 import { createRenderPipeline, fixSafariForeignObjectParagraphs } from "../pipeline";
 import { preRenderDiagramFencesToImages } from "../diagrams";
-import { preRenderMathLinesToImages, preRenderMathToImages } from "../math";
-import { revokeBlobs } from "../blobs";
+import { preRenderMathToImages } from "../math";
 import { waitForDomImages } from "../images";
 
 function makeDeps() {
@@ -81,7 +78,7 @@ describe("render pipeline", () => {
     expect(waitForDomImages).not.toHaveBeenCalled();
   });
 
-  it("revokes math blobs when math line render cancels", async () => {
+  it("handles math render cancel gracefully", async () => {
     const { overlayEl, pasteEl, setEditorValue, transformer, mm, toggleEditorBtn } = makeDeps();
     const pipeline = createRenderPipeline({
       transformer,
@@ -92,15 +89,13 @@ describe("render pipeline", () => {
       toggleEditorBtn,
     });
     const mathPre = vi.mocked(preRenderMathToImages);
-    const mathLines = vi.mocked(preRenderMathLinesToImages);
-    mathPre.mockResolvedValueOnce({ mdOut: "# Title", blobUrls: ["blob:math-a"] });
-    mathLines.mockResolvedValueOnce(null);
+    mathPre.mockResolvedValueOnce(null);
 
     await pipeline.render("# Title");
-    expect(revokeBlobs).toHaveBeenCalledWith(["blob:math-a"]);
+    expect(mm.setData).not.toHaveBeenCalled();
   });
 
-  it("revokes math line blobs when diagram render cancels", async () => {
+  it("handles diagram render cancel gracefully", async () => {
     const { overlayEl, pasteEl, setEditorValue, transformer, mm, toggleEditorBtn } = makeDeps();
     const pipeline = createRenderPipeline({
       transformer,
@@ -111,14 +106,12 @@ describe("render pipeline", () => {
       toggleEditorBtn,
     });
     const mathPre = vi.mocked(preRenderMathToImages);
-    const mathLines = vi.mocked(preRenderMathLinesToImages);
     const diagramPre = vi.mocked(preRenderDiagramFencesToImages);
-    mathPre.mockResolvedValueOnce({ mdOut: "# Title", blobUrls: ["blob:math-a"] });
-    mathLines.mockResolvedValueOnce({ mdOut: "# Title", blobUrls: ["blob:math-b"] });
+    mathPre.mockResolvedValueOnce({ mdOut: "# Title" });
     diagramPre.mockResolvedValueOnce(null);
 
     await pipeline.render("# Title");
-    expect(revokeBlobs).toHaveBeenCalledWith(["blob:math-b"]);
+    expect(mm.setData).not.toHaveBeenCalled();
   });
 });
 

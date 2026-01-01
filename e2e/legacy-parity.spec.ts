@@ -25,7 +25,6 @@ async function getCounts(page) {
     diagramImgs: document.querySelectorAll("img.diagram-img").length,
     mermaidImgs: document.querySelectorAll("img.mermaid-img").length,
     mathImgs: document.querySelectorAll("img.math-img").length,
-    mathLineImgs: document.querySelectorAll("img.math-line-img").length,
   }));
 }
 
@@ -44,8 +43,11 @@ test.describe("legacy parity (transitional)", () => {
     expect(currentCounts.totalImgs).toBeGreaterThanOrEqual(legacyCounts.totalImgs);
     expect(currentCounts.diagramImgs).toBeGreaterThanOrEqual(legacyCounts.diagramImgs);
     expect(currentCounts.mermaidImgs).toBeGreaterThanOrEqual(legacyCounts.mermaidImgs);
-    expect(currentCounts.mathImgs).toBeGreaterThanOrEqual(legacyCounts.mathImgs);
-    expect(currentCounts.mathLineImgs).toBeGreaterThanOrEqual(legacyCounts.mathLineImgs);
+    expect(currentCounts.mathImgs).toBeGreaterThanOrEqual(
+      legacyCounts.mathImgs + await legacyPage.evaluate(() =>
+        document.querySelectorAll("img.math-line-img").length
+      )
+    );
 
     await legacyPage.close();
   });

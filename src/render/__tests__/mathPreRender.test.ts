@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("../images", () => ({
   getRasterScale: () => 1,
-  svgToPngBlob: vi.fn(async () => new Blob(["png"], { type: "image/png" })),
 }));
 
 import { preRenderMathToImages } from "../math";
@@ -35,7 +34,8 @@ describe("preRenderMathToImages", () => {
     const md = "Inline $x^2$\n\n$$\\int_0^1 x dx$$";
     const res = await preRenderMathToImages(md, () => true);
     expect(res?.mdOut).toContain("math-img");
-    expect(res?.blobUrls.length).toBeGreaterThanOrEqual(1);
+    expect(res?.mdOut).toContain("data:image/svg+xml");
+    expect(res?.mdOut).not.toContain("blob:");
   });
 
   it("skips inline currency-like values", async () => {
