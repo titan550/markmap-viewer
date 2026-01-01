@@ -15,10 +15,14 @@ export type MarkmapToolbar = {
   render: () => HTMLElement;
 };
 
+export type MarkmapOptions = {
+  maxWidth?: number;  // Max width of node content in pixels; 0 = no limit
+};
+
 export type MarkmapAPI = {
   Transformer: new () => MarkmapTransformer;
   Markmap: {
-    create: (svg: SVGSVGElement) => MarkmapInstance;
+    create: (svg: SVGSVGElement, options?: MarkmapOptions) => MarkmapInstance;
   };
   Toolbar: new () => MarkmapToolbar;
 };

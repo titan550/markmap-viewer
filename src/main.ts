@@ -42,7 +42,7 @@ if (!window.mermaid?.render) {
 
 const { Transformer, Markmap, Toolbar } = mmapi;
 const transformer = new Transformer();
-const mm = Markmap.create(svgEl);
+const mm = Markmap.create(svgEl, { maxWidth: 300 });
 
 setupToolbar(mm, Toolbar, svgEl, overlayEl, editorPanel);
 
