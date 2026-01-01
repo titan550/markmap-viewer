@@ -286,3 +286,19 @@ body.editor-open #mindmap {
   width: calc(100vw - 400px);
   margin-left: 400px;
 }
+
+/* Prism code blocks inside Markmap foreignObjects */
+foreignObject pre[class*="language-"] {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+foreignObject code[class*="language-"] {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+}

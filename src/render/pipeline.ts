@@ -1,4 +1,5 @@
 import { markmapNormalize } from "../core/markmapNormalize";
+import { normalizeFenceLang } from "../core/normalizeFenceLang";
 import { revokeBlobs } from "./blobs";
 import { preRenderDiagramFencesToImages } from "./diagrams";
 import { nextFrames } from "./frames";
@@ -63,7 +64,8 @@ export function createRenderPipeline(deps: RenderPipelineDeps): RenderPipeline {
 
     try {
       const normalized = markmapNormalize(text);
-      const mathPre = await preRenderMathToImages(normalized, shouldContinue);
+      const langNormalized = normalizeFenceLang(normalized);
+      const mathPre = await preRenderMathToImages(langNormalized, shouldContinue);
       if (!mathPre || !shouldContinue()) return;
       const diagramPre = await preRenderDiagramFencesToImages(mathPre.mdOut, token, shouldContinue);
       if (!diagramPre || !shouldContinue()) return;
@@ -81,6 +83,10 @@ export function createRenderPipeline(deps: RenderPipelineDeps): RenderPipeline {
       const svg = document.querySelector("#mindmap");
       if (svg) {
         fixSafariForeignObjectParagraphs(svg);
+        // Highlight code blocks with Prism
+        if (window.Prism) {
+          window.Prism.highlightAllUnder(svg);
+        }
       }
 
       if (hasImages && svg) {
@@ -90,6 +96,10 @@ export function createRenderPipeline(deps: RenderPipelineDeps): RenderPipeline {
         await nextFrames(1);
         if (!shouldContinue()) return;
         fixSafariForeignObjectParagraphs(svg);
+        // Highlight code blocks with Prism
+        if (window.Prism) {
+          window.Prism.highlightAllUnder(svg);
+        }
       }
 
       mm.fit();

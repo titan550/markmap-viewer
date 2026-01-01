@@ -40,6 +40,14 @@ if (!window.mermaid?.render) {
   throw new Error("Mermaid failed to load");
 }
 
+// Configure Prism autoloader
+if (window.Prism?.plugins?.autoloader) {
+  window.Prism.plugins.autoloader.languages_path =
+    "https://cdn.jsdelivr.net/npm/prismjs@1.30.0/components/";
+} else {
+  console.warn("Prism autoloader not loaded");
+}
+
 const { Transformer, Markmap, Toolbar } = mmapi;
 const transformer = new Transformer();
 const mm = Markmap.create(svgEl, { maxWidth: 300 });

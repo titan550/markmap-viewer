@@ -113,6 +113,50 @@ describe("render pipeline", () => {
     await pipeline.render("# Title");
     expect(mm.setData).not.toHaveBeenCalled();
   });
+
+  it("normalizes fence languages before rendering", async () => {
+    const { overlayEl, pasteEl, setEditorValue, transformer, mm, toggleEditorBtn } = makeDeps();
+    const pipeline = createRenderPipeline({
+      transformer,
+      mm,
+      overlayEl,
+      pasteEl,
+      setEditorValue,
+      toggleEditorBtn,
+    });
+
+    // Mock transformer to capture what it receives
+    const transformSpy = vi.spyOn(transformer, "transform");
+
+    await pipeline.render("# Test\n```ts\ncode\n```");
+
+    // Verify transformer received normalized language
+    const transformCall = transformSpy.mock.calls[0][0];
+    expect(transformCall).toContain("```typescript");
+    expect(transformCall).not.toContain("```ts");
+  });
+
+  it("normalizes multiple fence languages", async () => {
+    const { overlayEl, pasteEl, setEditorValue, transformer, mm, toggleEditorBtn } = makeDeps();
+    const pipeline = createRenderPipeline({
+      transformer,
+      mm,
+      overlayEl,
+      pasteEl,
+      setEditorValue,
+      toggleEditorBtn,
+    });
+
+    const transformSpy = vi.spyOn(transformer, "transform");
+
+    await pipeline.render("# Test\n```js\ncode\n```\n```py\ncode\n```");
+
+    const transformCall = transformSpy.mock.calls[0][0];
+    expect(transformCall).toContain("```javascript");
+    expect(transformCall).toContain("```python");
+    expect(transformCall).not.toContain("```js\n");
+    expect(transformCall).not.toContain("```py\n");
+  });
 });
 
 describe("fixSafariForeignObjectParagraphs", () => {
