@@ -18,4 +18,22 @@ describe("markmapNormalize extra", () => {
     expect(out).toContain("## This is a paragraph Still paragraph");
   });
 
+  it("indents fences under preceding list items", () => {
+    const input = `### Nested lists + code
+- Level 1
+  - Level 2
+    - Level 3
+      - Level 4 (deep indent)
+        - Bullet with a short note
+- Fenced code (non-mermaid)
+\`\`\`js
+function fib(n){ return n<2?n:fib(n-1)+fib(n-2); }
+console.log(fib(10));
+\`\`\`\``;
+    const out = markmapNormalize(input);
+    expect(out).toContain("- Fenced code (non-mermaid)");
+    expect(out).toContain("\n  ```js");
+    expect(out).toContain("\n  ````");
+  });
+
 });

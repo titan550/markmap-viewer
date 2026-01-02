@@ -12,9 +12,11 @@ export function markmapNormalize(mdText: string): string {
   let lastHeadingLevel = 3;
   let lastExplicitHeadingLevel = 3;
   let prevNonEmptyWasList = false;
+  let lastListIndent = "";
   let inFence = false;
   let fenceMarkerChar: "`" | "~" | null = null;
   let fenceMarkerLen = 0;
+  let fenceIndentPrefix: string | null = null;
   let inMathBlock = false;
 
   const isFenceLine = (line: string) => Boolean(parseFenceOpening(line));
@@ -30,10 +32,16 @@ export function markmapNormalize(mdText: string): string {
 
     const fenceOpen = parseFenceOpening(line);
     if (!inFence && fenceOpen) {
+      if (prevNonEmptyWasList && fenceOpen.indent.length <= 3) {
+        const childIndent = lastListIndent + "  ";
+        if (!fenceOpen.indent.startsWith(childIndent)) {
+          fenceIndentPrefix = childIndent;
+        }
+      }
       inFence = true;
       fenceMarkerChar = fenceOpen.markerChar;
       fenceMarkerLen = fenceOpen.markerLen;
-      result.push(line);
+      result.push(fenceIndentPrefix ? fenceIndentPrefix + line : line);
       prevNonEmptyWasList = false;
       continue;
     }
@@ -42,7 +50,8 @@ export function markmapNormalize(mdText: string): string {
       inFence = false;
       fenceMarkerChar = null;
       fenceMarkerLen = 0;
-      result.push(line);
+      result.push(fenceIndentPrefix ? fenceIndentPrefix + line : line);
+      fenceIndentPrefix = null;
       prevNonEmptyWasList = false;
       if (i + 2 < fixedLines.length && !fixedLines[i + 1].trim() && isListLine(fixedLines[i + 2])) {
         i += 1;
@@ -51,7 +60,7 @@ export function markmapNormalize(mdText: string): string {
     }
 
     if (inFence) {
-      result.push(line);
+      result.push(fenceIndentPrefix ? fenceIndentPrefix + line : line);
       prevNonEmptyWasList = false;
       continue;
     }
@@ -121,6 +130,9 @@ export function markmapNormalize(mdText: string): string {
     result.push(line);
     if (line.trim()) {
       prevNonEmptyWasList = isListLine(line);
+      if (prevNonEmptyWasList) {
+        lastListIndent = line.match(/^(\s*)/)?.[1] || "";
+      }
     }
   }
 

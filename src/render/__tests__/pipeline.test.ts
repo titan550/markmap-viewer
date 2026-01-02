@@ -157,6 +157,26 @@ describe("render pipeline", () => {
     expect(transformCall).not.toContain("```js\n");
     expect(transformCall).not.toContain("```py\n");
   });
+
+  it("normalizes indented fences under list items", async () => {
+    const { overlayEl, pasteEl, setEditorValue, transformer, mm, toggleEditorBtn } = makeDeps();
+    const pipeline = createRenderPipeline({
+      transformer,
+      mm,
+      overlayEl,
+      pasteEl,
+      setEditorValue,
+      toggleEditorBtn,
+    });
+
+    const transformSpy = vi.spyOn(transformer, "transform");
+
+    await pipeline.render("# Test\n- Item\n```js\ncode\n````");
+
+    const transformCall = transformSpy.mock.calls[0][0];
+    expect(transformCall).toContain("\n  ```javascript");
+    expect(transformCall).toContain("\n  ````");
+  });
 });
 
 describe("fixSafariForeignObjectParagraphs", () => {
