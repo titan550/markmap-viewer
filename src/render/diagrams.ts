@@ -32,10 +32,10 @@ export async function preRenderDiagramFencesToImages(
 
   for (const block of blocks) {
     out += text.slice(lastIndex, block.start);
-    const indent = block.indent || "";
-    const lang = block.lang || "";
+    const indent = block.indent;
+    const lang = block.lang;
     const hint = (block.hint || "").toLowerCase();
-    const raw = block.content || "";
+    const raw = block.content;
     const renderer = renderers[lang];
     const listCtx = getListContext(text, block.start);
     const safeIndent = listCtx.isList ? listCtx.childIndent : computeSafeIndent(indent, text, block.start);

@@ -125,12 +125,10 @@ describe("render pipeline", () => {
       toggleEditorBtn,
     });
 
-    // Mock transformer to capture what it receives
     const transformSpy = vi.spyOn(transformer, "transform");
 
     await pipeline.render("# Test\n```ts\ncode\n```");
 
-    // Verify transformer received normalized language
     const transformCall = transformSpy.mock.calls[0][0];
     expect(transformCall).toContain("```typescript");
     expect(transformCall).not.toContain("```ts");

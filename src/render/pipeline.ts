@@ -83,7 +83,6 @@ export function createRenderPipeline(deps: RenderPipelineDeps): RenderPipeline {
       const svg = document.querySelector("#mindmap");
       if (svg) {
         fixSafariForeignObjectParagraphs(svg);
-        // Highlight code blocks with Prism
         if (window.Prism) {
           window.Prism.highlightAllUnder(svg);
         }
@@ -96,7 +95,6 @@ export function createRenderPipeline(deps: RenderPipelineDeps): RenderPipeline {
         await nextFrames(1);
         if (!shouldContinue()) return;
         fixSafariForeignObjectParagraphs(svg);
-        // Highlight code blocks with Prism
         if (window.Prism) {
           window.Prism.highlightAllUnder(svg);
         }

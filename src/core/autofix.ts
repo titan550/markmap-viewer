@@ -2,13 +2,6 @@ import { markmapNormalize } from "./markmapNormalize";
 import { sanitizeMermaidSourceLabels } from "./mermaidSanitize";
 import { normalizeNewlines, scanFencedBlocks } from "./fences";
 
-/**
- * Applies all markdown transformations that happen during rendering:
- * 1. markmapNormalize - fixes heading levels, converts paragraphs to headings
- * 2. mermaid sanitization - fixes special characters in mermaid diagrams
- *
- * This allows users to see exactly what will be rendered.
- */
 export function autofixMarkdown(mdText: string): string {
   let result = markmapNormalize(mdText);
   const text = normalizeNewlines(result);
@@ -31,8 +24,7 @@ export function autofixMarkdown(mdText: string): string {
         wrapEdgeLabels: !isERDiagram,
       });
       const info = block.info ? " " + block.info : "";
-      const lineEnd = block.end;
-      const hasTrailingNewline = lineEnd > 0 && text[lineEnd - 1] === "\n";
+      const hasTrailingNewline = block.end > 0 && text[block.end - 1] === "\n";
       out += `${block.indent}${block.marker}${info}\n${sanitized}\n${block.indent}${block.marker}${hasTrailingNewline ? "\n" : ""}`;
       touched = true;
     } else {

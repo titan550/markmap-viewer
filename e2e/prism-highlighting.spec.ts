@@ -205,7 +205,6 @@ some code here
 
     await loadMarkdown(page, markdown);
 
-    // Should not crash - verify page is still functional
     const mindmapExists = await page.evaluate(() => {
       const svg = document.querySelector("#mindmap");
       return svg !== null;
@@ -213,7 +212,6 @@ some code here
 
     expect(mindmapExists).toBe(true);
 
-    // Code block should exist even if not highlighted
     const codeBlockExists = await page.evaluate(() => {
       const codeBlock = document.querySelector('code[class*="language-"]');
       return codeBlock !== null;

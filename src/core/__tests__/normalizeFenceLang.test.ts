@@ -222,7 +222,6 @@ const ts = "ts variable";
     it("normalizes opening fence even without closing (regex matches line-by-line)", () => {
       const input = "```js\ncode";
       const output = normalizeFenceLang(input);
-      // The regex matches ```js on its own line, so it WILL be normalized
       expect(output).toBe("```javascript\ncode");
     });
   });

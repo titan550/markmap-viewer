@@ -1,7 +1,7 @@
 import { isFenceClosing, normalizeNewlines, parseFenceOpening, unwrapMarkdownContainerFence } from "./fences";
 
 export function markmapNormalize(mdText: string): string {
-  let s = normalizeNewlines(mdText || "");
+  let s = normalizeNewlines(mdText);
   s = unwrapMarkdownContainerFence(s);
   s = s
     .replace(/^(.+)\n=+\s*$/gm, (_, t) => `# ${t.trim()}`)

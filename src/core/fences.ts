@@ -17,13 +17,13 @@ export type FenceBlock = FenceOpening & {
 };
 
 export function normalizeNewlines(md: string): string {
-  return (md || "").replace(/\r\n?/g, "\n");
+  return md.replace(/\r\n?/g, "\n");
 }
 
 export function parseFenceOpening(line: string): FenceOpening | null {
   const match = line.match(/^([ \t]*)(`{3,}|~{3,})(.*)$/);
   if (!match) return null;
-  const indent = match[1] || "";
+  const indent = match[1];
   const marker = match[2];
   const markerChar = marker[0] === "~" ? "~" : "`";
   const markerLen = marker.length;
@@ -62,7 +62,7 @@ export function scanFencedBlocks(md: string): FenceBlock[] {
       const opening = parseFenceOpening(line);
       if (opening) {
         inFence = true;
-        open = { ...opening };
+        open = opening;
         openLineStart = lineStart;
         contentStart = lineEndWithNewline;
       }

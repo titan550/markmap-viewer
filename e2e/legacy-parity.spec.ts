@@ -30,7 +30,6 @@ async function getCounts(page) {
 
 test.describe("legacy parity (transitional)", () => {
   test("matches or exceeds legacy render counts", async ({ page, context }) => {
-    // Transitional parity test: remove once refactor is fully trusted.
     const legacyPage = await context.newPage();
 
     await loadFixture(legacyPage, "legacy");
