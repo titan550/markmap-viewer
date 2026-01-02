@@ -1,4 +1,5 @@
 import { appendInlineToLastListItem, computeSafeIndent, getListContext } from "../core/listContext";
+import { isFenceClosing, parseFenceOpening } from "../core/fences";
 import { parseSvgSize, parseSvgSizeWithUnit, setSvgPixelSize, svgToDataUrl } from "../core/svg";
 import type { MarkmapTransformer } from "../types/markmap";
 
@@ -43,7 +44,8 @@ export async function preRenderMathToImages(
   let out = "";
   let i = 0;
   let inFence = false;
-  let fence = "";
+  let fenceMarkerChar: "`" | "~" | null = null;
+  let fenceMarkerLen = 0;
   let inInlineCode = false;
   let inlineCodeTicks = 0;
 
@@ -113,6 +115,33 @@ export async function preRenderMathToImages(
   while (i < mdText.length) {
     if (!shouldContinue()) return null;
 
+    const lineInfo = isLineStart(i) ? readLine(i) : null;
+    if (lineInfo && !inInlineCode) {
+      const lineHasNewline = lineInfo.end <= mdText.length && mdText[lineInfo.end - 1] === "\n";
+      if (!inFence) {
+        const opening = parseFenceOpening(lineInfo.text);
+        if (opening) {
+          inFence = true;
+          fenceMarkerChar = opening.markerChar;
+          fenceMarkerLen = opening.markerLen;
+          out += lineInfo.text + (lineHasNewline ? "\n" : "");
+          i = lineInfo.end;
+          continue;
+        }
+      } else if (fenceMarkerChar && isFenceClosing(lineInfo.text, fenceMarkerChar, fenceMarkerLen)) {
+        inFence = false;
+        fenceMarkerChar = null;
+        fenceMarkerLen = 0;
+        out += lineInfo.text + (lineHasNewline ? "\n" : "");
+        i = lineInfo.end;
+        continue;
+      } else if (inFence) {
+        out += lineInfo.text + (lineHasNewline ? "\n" : "");
+        i = lineInfo.end;
+        continue;
+      }
+    }
+
     if (mdText[i] === "`") {
       const run = countTickRun(i);
       if (!inInlineCode) {
@@ -124,20 +153,6 @@ export async function preRenderMathToImages(
       }
       out += mdText.slice(i, i + run);
       i += run;
-      continue;
-    }
-
-    const lineInfo = isLineStart(i) ? readLine(i) : null;
-    if (lineInfo && lineInfo.text.trim().startsWith("```")) {
-      if (!inFence) {
-        inFence = true;
-        fence = lineInfo.text.trim().slice(0, 3);
-      } else if (lineInfo.text.trim().startsWith(fence)) {
-        inFence = false;
-        fence = "";
-      }
-      out += lineInfo.text + "\n";
-      i = lineInfo.end;
       continue;
     }
 

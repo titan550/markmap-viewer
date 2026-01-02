@@ -52,4 +52,20 @@ describe("preRenderMathToImages", () => {
     expect(res?.mdOut).toContain("`cost $100`");
     expect(res?.mdOut).toContain("math-img");
   });
+
+  it("does not render math inside tilde fences", async () => {
+    mockMathJax();
+    const md = "~~~\n$x$\n~~~";
+    const res = await preRenderMathToImages(md, () => true);
+    expect(res?.mdOut).toContain("$x$");
+    expect(res?.mdOut).not.toContain("math-img");
+  });
+
+  it("does not render math inside longer backtick fences", async () => {
+    mockMathJax();
+    const md = "````\n$x$\n````";
+    const res = await preRenderMathToImages(md, () => true);
+    expect(res?.mdOut).toContain("$x$");
+    expect(res?.mdOut).not.toContain("math-img");
+  });
 });

@@ -1,4 +1,5 @@
 import { appendInlineToLastListItem, computeSafeIndent, getListContext } from "../core/listContext";
+import { normalizeNewlines, scanFencedBlocks } from "../core/fences";
 import { revokeBlobs } from "./blobs";
 import { dotRenderer } from "../renderers/dot";
 import { mermaidRenderer } from "../renderers/mermaid";
@@ -23,25 +24,25 @@ export async function preRenderDiagramFencesToImages(
   currentToken: number,
   shouldContinue: () => boolean
 ): Promise<{ mdOut: string; blobUrls: string[] } | null> {
-  const re = /^([ \t]*)```([A-Za-z0-9_-]+)(?:[ \t]+([A-Za-z0-9_-]+))?[ \t]*\n([\s\S]*?)\n\1```/gmi;
+  const text = normalizeNewlines(mdText);
+  const blocks = scanFencedBlocks(text);
   let out = "";
   let lastIndex = 0;
-  let match: RegExpExecArray | null;
   const blobUrls: string[] = [];
 
-  while ((match = re.exec(mdText)) !== null) {
-    out += mdText.slice(lastIndex, match.index);
-    const indent = match[1] || "";
-    const lang = (match[2] || "").toLowerCase();
-    const hint = (match[3] || "").toLowerCase();
-    const raw = match[4] || "";
+  for (const block of blocks) {
+    out += text.slice(lastIndex, block.start);
+    const indent = block.indent || "";
+    const lang = block.lang || "";
+    const hint = (block.hint || "").toLowerCase();
+    const raw = block.content || "";
     const renderer = renderers[lang];
-    const listCtx = getListContext(mdText, match.index);
-    const safeIndent = listCtx.isList ? listCtx.childIndent : computeSafeIndent(indent, mdText, match.index);
+    const listCtx = getListContext(text, block.start);
+    const safeIndent = listCtx.isList ? listCtx.childIndent : computeSafeIndent(indent, text, block.start);
 
     if (!renderer) {
-      out += match[0];
-      lastIndex = re.lastIndex;
+      out += text.slice(block.start, block.end);
+      lastIndex = block.end;
       continue;
     }
 
@@ -52,12 +53,12 @@ export async function preRenderDiagramFencesToImages(
 
     let rendered: RenderResult | null = null;
     try {
-      rendered = await renderer.render(raw, { mdText, matchIndex: match.index, token: currentToken, formatHint: hint });
+      rendered = await renderer.render(raw, { mdText: text, matchIndex: block.start, token: currentToken, formatHint: hint });
     } catch (e) {
       const firstLine = raw.split("\n").find((line) => line.trim()) || "";
       console.warn(`${renderer.name} render failed; skipping block`, firstLine, e);
-      out += match[0];
-      lastIndex = re.lastIndex;
+      out += text.slice(block.start, block.end);
+      lastIndex = block.end;
       continue;
     }
 
@@ -68,8 +69,8 @@ export async function preRenderDiagramFencesToImages(
 
     const { mime, data, width, height, className, alt } = rendered;
     if (!mime || !data) {
-      out += match[0];
-      lastIndex = re.lastIndex;
+      out += text.slice(block.start, block.end);
+      lastIndex = block.end;
       continue;
     }
 
@@ -94,9 +95,9 @@ export async function preRenderDiagramFencesToImages(
     } else {
       out += `${safeIndent}- ${imgHtml}`;
     }
-    lastIndex = re.lastIndex;
+    lastIndex = block.end;
   }
 
-  out += mdText.slice(lastIndex);
+  out += text.slice(lastIndex);
   return { mdOut: out, blobUrls };
 }

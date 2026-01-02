@@ -65,6 +65,19 @@ describe("preRenderDiagramFencesToImages", () => {
     expect(res?.blobUrls.length).toBe(1);
   });
 
+  it("renders tilde-fenced mermaid blocks", async () => {
+    const md = "~~~mermaid\nflowchart LR\nA-->B\n~~~";
+    const res = await preRenderDiagramFencesToImages(md, 1, () => true);
+    expect(res?.mdOut).toContain("diagram-wrap");
+    expect(res?.mdOut).toContain("<img");
+  });
+
+  it("accepts longer closing fence than opening", async () => {
+    const md = "```mermaid\nflowchart LR\nA-->B\n````";
+    const res = await preRenderDiagramFencesToImages(md, 1, () => true);
+    expect(res?.mdOut).toContain("diagram-wrap");
+  });
+
   it("keeps unknown fences intact", async () => {
     const md = "```unknown\nhello\n```";
     const res = await preRenderDiagramFencesToImages(md, 1, () => true);

@@ -1,8 +1,8 @@
+import { isFenceClosing, normalizeNewlines, parseFenceOpening, unwrapMarkdownContainerFence } from "./fences";
+
 export function markmapNormalize(mdText: string): string {
-  let s = (mdText || "").replace(/\r\n/g, "\n");
-  const trimmed = s.trim();
-  const fenced = trimmed.match(/^```(?:markdown|md)\s*\n([\s\S]*?)\n```$/);
-  if (fenced) s = fenced[1];
+  let s = normalizeNewlines(mdText || "");
+  s = unwrapMarkdownContainerFence(s);
   s = s
     .replace(/^(.+)\n=+\s*$/gm, (_, t) => `# ${t.trim()}`)
     .replace(/^(.+)\n-+\s*$/gm, (_, t) => `## ${t.trim()}`);
@@ -13,10 +13,11 @@ export function markmapNormalize(mdText: string): string {
   let lastExplicitHeadingLevel = 3;
   let prevNonEmptyWasList = false;
   let inFence = false;
-  let fenceMarker: string | null = null;
+  let fenceMarkerChar: "`" | "~" | null = null;
+  let fenceMarkerLen = 0;
   let inMathBlock = false;
 
-  const isFenceLine = (line: string) => /^\s*(```+|~~~+)/.test(line);
+  const isFenceLine = (line: string) => Boolean(parseFenceOpening(line));
   const isListLine = (line: string) => /^(\s*)(?:[-*+]|[0-9]+\.)\s+/.test(line);
   const isBlockMathLine = (line: string) => line.trim().startsWith("$$");
   const isHorizontalRule = (line: string) => /^([-*_]){3,}\s*$/.test(line.trim());
@@ -27,18 +28,25 @@ export function markmapNormalize(mdText: string): string {
   for (let i = 0; i < fixedLines.length; i++) {
     const line = fixedLines[i];
 
-    const fenceMatch = line.match(/^\s*(```+|~~~+)/);
-    if (fenceMatch) {
-      const marker = fenceMatch[1];
-      if (!inFence) {
-        inFence = true;
-        fenceMarker = marker;
-      } else if (fenceMarker && line.trim().startsWith(fenceMarker)) {
-        inFence = false;
-        fenceMarker = null;
-      }
+    const fenceOpen = parseFenceOpening(line);
+    if (!inFence && fenceOpen) {
+      inFence = true;
+      fenceMarkerChar = fenceOpen.markerChar;
+      fenceMarkerLen = fenceOpen.markerLen;
       result.push(line);
       prevNonEmptyWasList = false;
+      continue;
+    }
+
+    if (inFence && fenceMarkerChar && isFenceClosing(line, fenceMarkerChar, fenceMarkerLen)) {
+      inFence = false;
+      fenceMarkerChar = null;
+      fenceMarkerLen = 0;
+      result.push(line);
+      prevNonEmptyWasList = false;
+      if (i + 2 < fixedLines.length && !fixedLines[i + 1].trim() && isListLine(fixedLines[i + 2])) {
+        i += 1;
+      }
       continue;
     }
 
@@ -121,8 +129,5 @@ export function markmapNormalize(mdText: string): string {
   // Convert loose lists to tight lists by removing blank lines between list items
   // This prevents Safari foreignObject rendering issues with <p> tags
   s = s.replace(/^(\s*(?:[-*+]|\d+\.)\s+.*)$\n\n(?=\s*(?:[-*+]|\d+\.)\s+)/gm, "$1\n");
-  // Also handle: fence close followed by blank line before list item
-  s = s.replace(/^(\s*```)\n\n(?=\s*(?:[-*+]|\d+\.)\s+)/gm, "$1\n");
-
   return s.replace(/\n{3,}/g, "\n\n").trim() + "\n";
 }

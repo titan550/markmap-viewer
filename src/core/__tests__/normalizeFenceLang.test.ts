@@ -156,15 +156,29 @@ code2
   });
 
   describe("edge cases", () => {
-    it("does NOT normalize indented code blocks (regex requires start of line)", () => {
+    it("normalizes indented code blocks", () => {
       const input = `- Item
   \`\`\`js
   code
   \`\`\``;
 
       const output = normalizeFenceLang(input);
-      // Indented fences are NOT normalized because regex requires ^```
-      expect(output).toBe(input);
+      expect(output).toBe(`- Item
+  \`\`\`javascript
+  code
+  \`\`\``);
+    });
+
+    it("normalizes tilde fences", () => {
+      const input = "~~~js\ncode\n~~~";
+      const output = normalizeFenceLang(input);
+      expect(output).toBe("~~~javascript\ncode\n~~~");
+    });
+
+    it("preserves extra tokens after language", () => {
+      const input = "```js title=demo\ncode\n```";
+      const output = normalizeFenceLang(input);
+      expect(output).toBe("```javascript title=demo\ncode\n```");
     });
 
     it("doesn't modify code content inside fences", () => {
@@ -199,10 +213,10 @@ const ts = "ts variable";
   });
 
   describe("doesn't match malformed fences", () => {
-    it("doesn't modify fences with content on same line", () => {
+    it("normalizes fences with extra tokens on the opening line", () => {
       const input = "```js code on same line";
       const output = normalizeFenceLang(input);
-      expect(output).toBe("```js code on same line");
+      expect(output).toBe("```javascript code on same line");
     });
 
     it("normalizes opening fence even without closing (regex matches line-by-line)", () => {

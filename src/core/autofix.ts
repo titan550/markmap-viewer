@@ -1,5 +1,6 @@
 import { markmapNormalize } from "./markmapNormalize";
 import { sanitizeMermaidSourceLabels } from "./mermaidSanitize";
+import { normalizeNewlines, scanFencedBlocks } from "./fences";
 
 /**
  * Applies all markdown transformations that happen during rendering:
@@ -10,12 +11,18 @@ import { sanitizeMermaidSourceLabels } from "./mermaidSanitize";
  */
 export function autofixMarkdown(mdText: string): string {
   let result = markmapNormalize(mdText);
+  const text = normalizeNewlines(result);
+  const blocks = scanFencedBlocks(text);
+  if (!blocks.length) return result;
 
-  result = result.replace(
-    /^([ \t]*)(```)(mermaid)[ \t]*\n([\s\S]*?)\n\1```/gim,
-    (_match, indent, fence, lang, content) => {
-      const isERDiagram = /^\s*erDiagram\b/m.test(content);
-      const sanitized = sanitizeMermaidSourceLabels(content, {
+  let out = "";
+  let lastIndex = 0;
+  let touched = false;
+  for (const block of blocks) {
+    out += text.slice(lastIndex, block.start);
+    if (block.lang === "mermaid") {
+      const isERDiagram = /^\s*erDiagram\b/m.test(block.content);
+      const sanitized = sanitizeMermaidSourceLabels(block.content, {
         lineBreak: "<br/>",
         preserveExisting: true,
         normalizeHtmlEntities: true,
@@ -23,9 +30,20 @@ export function autofixMarkdown(mdText: string): string {
         useMarkdownStrings: true,
         wrapEdgeLabels: !isERDiagram,
       });
-      return `${indent}${fence}${lang}\n${sanitized}\n${indent}\`\`\``;
+      const info = block.info ? " " + block.info : "";
+      const lineEnd = block.end;
+      const hasTrailingNewline = lineEnd > 0 && text[lineEnd - 1] === "\n";
+      out += `${block.indent}${block.marker}${info}\n${sanitized}\n${block.indent}${block.marker}${hasTrailingNewline ? "\n" : ""}`;
+      touched = true;
+    } else {
+      out += text.slice(block.start, block.end);
     }
-  );
+    lastIndex = block.end;
+  }
+
+  if (!touched) return result;
+  out += text.slice(lastIndex);
+  result = out;
 
   return result;
 }
