@@ -84,4 +84,23 @@ describe("sanitizeMermaidSourceLabels", () => {
     const out = sanitizeMermaidSourceLabels(src);
     expect(out).toContain("START([\"Hello\"])");
   });
+
+  it("normalizes nbsp entities outside labels", () => {
+    const src = "classDiagram\nclass Foo {\n  +name&nbsp;string\n  +raw &amp; value\n}";
+    const out = sanitizeMermaidSourceLabels(src);
+    expect(out).toContain("+name string");
+    expect(out).toContain("&amp; value");
+  });
+
+  it("can keep nbsp entities when disabled", () => {
+    const src = "classDiagram\nclass Foo {\n  +name&nbsp;string\n}";
+    const out = sanitizeMermaidSourceLabels(src, { normalizeSpaceEntities: false });
+    expect(out).toContain("&nbsp");
+  });
+
+  it("normalizes literal nbsp characters", () => {
+    const src = "classDiagram\nclass Foo {\n  +name\u00a0string\n}";
+    const out = sanitizeMermaidSourceLabels(src);
+    expect(out).toContain("+name string");
+  });
 });

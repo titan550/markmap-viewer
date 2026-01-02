@@ -1,3 +1,5 @@
+import { sanitizeSvgForXml } from "../core/svgSanitize";
+
 export function getRasterScale(): number {
   const dpr = window.devicePixelRatio || 1;
   return Math.max(1, Math.min(2, dpr));
@@ -41,7 +43,7 @@ export async function waitForDomImages(root: ParentNode, shouldContinue: () => b
 }
 
 export async function svgToPngBlob(svgText: string, width: number, height: number, scale = 1): Promise<Blob> {
-  const svgBlob = new Blob([svgText], { type: "image/svg+xml" });
+  const svgBlob = new Blob([sanitizeSvgForXml(svgText)], { type: "image/svg+xml" });
   const url = URL.createObjectURL(svgBlob);
   try {
     const img = new Image();

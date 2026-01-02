@@ -124,12 +124,14 @@ export function sanitizeMermaidLabel(raw: string, opts: MermaidSanitizeOptions =
 export type MermaidSourceSanitizeOptions = MermaidSanitizeOptions & {
   useMarkdownStrings?: boolean;
   wrapEdgeLabels?: boolean;
+  normalizeSpaceEntities?: boolean;
 };
 
 export function sanitizeMermaidSourceLabels(mermaidSource: string, opts: MermaidSourceSanitizeOptions = {}): string {
   const {
     useMarkdownStrings = true,
     wrapEdgeLabels = true,
+    normalizeSpaceEntities = true,
   } = opts;
   const patterns = [
     { open: '(["', close: '"])' },
@@ -143,7 +145,14 @@ export function sanitizeMermaidSourceLabels(mermaidSource: string, opts: Mermaid
     { open: "{{", close: "}}" },
   ];
 
-  const src = String(mermaidSource ?? "");
+  let src = String(mermaidSource ?? "");
+  if (normalizeSpaceEntities) {
+    src = src
+      .replace(/&nbsp(?:;|\b)/gi, " ")
+      .replace(/&#160(?:;|\b)/gi, " ")
+      .replace(/&#xA0(?:;|\b)/gi, " ")
+      .replace(/\u00a0/g, " ");
+  }
   const firstLine = src.split("\n").find((line) => line.trim()) || "";
   const diagramType = firstLine.trim().split(/\s+/)[0].toLowerCase();
   const isERDiagram = diagramType === "erdiagram";

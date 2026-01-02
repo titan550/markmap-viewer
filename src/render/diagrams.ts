@@ -1,5 +1,6 @@
 import { appendInlineToLastListItem, computeSafeIndent, getListContext } from "../core/listContext";
 import { normalizeNewlines, scanFencedBlocks } from "../core/fences";
+import { sanitizeSvgForXml } from "../core/svgSanitize";
 import { revokeBlobs } from "./blobs";
 import { dotRenderer } from "../renderers/dot";
 import { mermaidRenderer } from "../renderers/mermaid";
@@ -67,11 +68,16 @@ export async function preRenderDiagramFencesToImages(
       return null;
     }
 
-    const { mime, data, width, height, className, alt } = rendered;
+    const { mime, width, height, className, alt } = rendered;
+    let { data } = rendered;
     if (!mime || !data) {
       out += text.slice(block.start, block.end);
       lastIndex = block.end;
       continue;
+    }
+
+    if (mime === "image/svg+xml" && typeof data === "string") {
+      data = sanitizeSvgForXml(data);
     }
 
     const blob = data instanceof Blob ? data : new Blob([data], { type: mime });
