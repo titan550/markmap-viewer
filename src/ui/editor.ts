@@ -12,6 +12,7 @@ export type EditorDeps = {
   onRender: (value: string) => void;
   onFit: () => void;
   getPasteMarkdown: (dataTransfer: DataTransfer | null, fallbackOnly?: boolean) => Promise<string>;
+  onContentChange?: () => void;
 };
 
 export type EditorApi = {
@@ -34,6 +35,7 @@ export function setupEditor(deps: EditorDeps): EditorApi {
     onRender,
     onFit,
     getPasteMarkdown,
+    onContentChange,
   } = deps;
 
   let editorVisible = localStorage.getItem("editorVisible") === "true" || false;
@@ -141,6 +143,7 @@ export function setupEditor(deps: EditorDeps): EditorApi {
       const value = getEditorValue();
       onRender(value);
       pasteEl.value = value;
+      onContentChange?.();
     }, 50);
   };
 

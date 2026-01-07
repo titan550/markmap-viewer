@@ -63,6 +63,16 @@ button {
 }
 button:hover { background: rgba(127,127,127,.08); }
 
+/* Reset session button - subtle styling */
+.reset-session-btn {
+  opacity: .6;
+  font-size: 11px;
+  padding: 5px 8px;
+}
+.reset-session-btn:hover {
+  opacity: 1;
+}
+
 #mindmap { overflow: visible; }
 foreignObject { overflow: visible; }
 foreignObject * { overflow: visible; }

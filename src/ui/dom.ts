@@ -12,6 +12,7 @@ export type DomRefs = {
   charCount: HTMLElement;
   autofixBtn: HTMLButtonElement;
   pasteClipboardBtn: HTMLButtonElement;
+  resetSessionBtn: HTMLButtonElement;
 };
 
 export function getDomRefs(): DomRefs {
@@ -35,5 +36,6 @@ export function getDomRefs(): DomRefs {
     charCount: get<HTMLElement>("#charCount"),
     autofixBtn: get<HTMLButtonElement>("#autofix"),
     pasteClipboardBtn: get<HTMLButtonElement>("#pasteClipboard"),
+    resetSessionBtn: get<HTMLButtonElement>("#resetSession"),
   };
 }

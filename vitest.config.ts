@@ -7,7 +7,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],
-      include: ["src/core/**", "src/render/**", "src/ui/paste.ts"],
+      include: ["src/core/**", "src/render/**", "src/storage/**", "src/ui/paste.ts"],
       exclude: ["**/node_modules/**", "**/e2e/**"],
     },
   },
