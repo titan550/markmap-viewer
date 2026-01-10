@@ -1,26 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { markmapNormalize } from "../markmapNormalize";
+import { markmapNormalize } from "../markmapNormalize.ts";
 
-describe("markmapNormalize", () => {
-  it("converts setext headings", () => {
+describe("markmapNormalize", function () {
+  it("converts setext headings", function () {
     const input = "Title\n====\n";
     const output = markmapNormalize(input);
     expect(output).toBe("# Title\n");
   });
 
-  it("promotes freeform text to a heading below last explicit heading", () => {
+  it("promotes freeform text to a heading below last explicit heading", function () {
     const input = "# Root\nFreeform paragraph\n";
     const output = markmapNormalize(input);
     expect(output).toBe("# Root\n## Freeform paragraph\n");
   });
 
-  it("keeps fenced code blocks intact", () => {
+  it("keeps fenced code blocks intact", function () {
     const input = "# Root\n```mermaid\nflowchart LR\nA-->B\n```\n";
     const output = markmapNormalize(input);
     expect(output).toContain("```mermaid\nflowchart LR\nA-->B\n```");
   });
 
-  it("unwraps markdown container fences with backticks", () => {
+  it("unwraps markdown container fences with backticks", function () {
     const input = "````markdown\n# Title\n\n- Item\n````";
     const output = markmapNormalize(input);
     expect(output).toContain("# Title");
@@ -28,7 +28,7 @@ describe("markmapNormalize", () => {
     expect(output).not.toContain("````markdown");
   });
 
-  it("unwraps markdown container fences with tildes", () => {
+  it("unwraps markdown container fences with tildes", function () {
     const input = "~~~markdown\n# Title\n\n- Item\n~~~";
     const output = markmapNormalize(input);
     expect(output).toContain("# Title");
@@ -36,7 +36,7 @@ describe("markmapNormalize", () => {
     expect(output).not.toContain("~~~markdown");
   });
 
-  it("converts loose lists to tight lists", () => {
+  it("converts loose lists to tight lists", function () {
     const input = `- Item 1
 
 - Item 2
@@ -47,7 +47,7 @@ describe("markmapNormalize", () => {
     expect(output).toContain("- Item 1\n- Item 2\n- Item 3");
   });
 
-  it("removes blank line after code fence before list item", () => {
+  it("removes blank line after code fence before list item", function () {
     const input = `- Item with fence
   \`\`\`mermaid
   flowchart LR
@@ -58,8 +58,8 @@ describe("markmapNormalize", () => {
     expect(output).not.toMatch(/```\n\n-/);
   });
 
-  describe("list context preservation", () => {
-    it("preserves multiple continuation paragraphs", () => {
+  describe("list context preservation", function () {
+    it("preserves multiple continuation paragraphs", function () {
       const input = `- Item
 
     Para 1.
@@ -76,7 +76,7 @@ describe("markmapNormalize", () => {
       expect(output).not.toContain("####");
     });
 
-    it("preserves content after code fence in list", () => {
+    it("preserves content after code fence in list", function () {
       const input = `- Item
     \`\`\`js
     const x = 1;
@@ -90,7 +90,7 @@ describe("markmapNormalize", () => {
       expect(output).not.toContain("####");
     });
 
-    it("preserves content after math block in list", () => {
+    it("preserves content after math block in list", function () {
       const input = `- Math item
 
     $$
@@ -105,7 +105,7 @@ describe("markmapNormalize", () => {
       expect(output).not.toContain("####");
     });
 
-    it("exits list context on unindented paragraph", () => {
+    it("exits list context on unindented paragraph", function () {
       const input = `- Item
 
 Not in list.`;
@@ -114,7 +114,7 @@ Not in list.`;
       expect(output).toMatch(/#{2,} Not in list\./);
     });
 
-    it("preserves nested list content with continuations", () => {
+    it("preserves nested list content with continuations", function () {
       const input = `- Parent
 
     - Child 1
@@ -129,7 +129,7 @@ Not in list.`;
       expect(output).not.toContain("####");
     });
 
-    it("handles real-world markdown with links in continuations", () => {
+    it("handles real-world markdown with links in continuations", function () {
       const input = `### Recommendations
 
 -   **Use Context7 as the default docs tool**, but **pair it with web search** for gaps.
@@ -151,61 +151,67 @@ Not in list.`;
     });
   });
 
-  describe("additional edge cases", () => {
-    it("preserves leading whitespace on first line", () => {
+  describe("additional edge cases", function () {
+    it("preserves leading whitespace on first line", function () {
       const input = "  - Indented item\n  - Item 2";
       const output = markmapNormalize(input);
       expect(output.startsWith("  -")).toBe(true);
     });
 
-    it("correctly indents fence inside indented list", () => {
+    it("correctly indents fence inside indented list", function () {
       const input = "  - Item\n  ```js\n  code\n  ```";
       const output = markmapNormalize(input);
-      const fenceLine = output.split("\n").find((l) => l.includes("```js"));
+      const fenceLine = output.split("\n").find(function (line) {
+        return line.includes("```js");
+      });
       // Should be at 4 spaces (list content indent), not 6 (doubled)
       expect(fenceLine).toBe("    ```js");
     });
 
-    it("recognizes indented headings", () => {
+    it("recognizes indented headings", function () {
       const input = "  # Heading\nContent";
       const output = markmapNormalize(input);
       expect(output).toContain("# Heading");
       expect(output).not.toContain("#### #");
     });
 
-    it("does not treat mixed chars as horizontal rule", () => {
+    it("does not treat mixed chars as horizontal rule", function () {
       const input = "-*-";
       const output = markmapNormalize(input);
       // Should be promoted to heading since it's not a valid hr
       expect(output).toContain("####");
     });
 
-    it("treats valid horizontal rules correctly", () => {
+    it("treats valid horizontal rules correctly", function () {
       const input = "---";
       const output = markmapNormalize(input);
       // Should be preserved as-is (horizontal rule)
       expect(output).toBe("---\n");
     });
 
-    it("preserves blank line before nested list item after fence", () => {
+    it("preserves blank line before nested list item after fence", function () {
       const input = "- Parent\n  ```js\n  code\n  ```\n\n    - Child";
       const output = markmapNormalize(input);
       // Blank line before nested child should be preserved
       expect(output).toContain("```\n\n    -");
     });
 
-    it("handles fence with no indent after list correctly", () => {
+    it("handles fence with no indent after list correctly", function () {
       const input = "- Item\n```js\ncode\n```";
       const output = markmapNormalize(input);
-      const fenceLine = output.split("\n").find((l) => l.includes("```js"));
+      const fenceLine = output.split("\n").find(function (line) {
+        return line.includes("```js");
+      });
       // Should be indented to list content level (2 spaces)
       expect(fenceLine).toBe("  ```js");
     });
 
-    it("handles fence with partial indent after list correctly", () => {
+    it("handles fence with partial indent after list correctly", function () {
       const input = "- Item\n ```js\n code\n ```";
       const output = markmapNormalize(input);
-      const fenceLine = output.split("\n").find((l) => l.includes("```js"));
+      const fenceLine = output.split("\n").find(function (line) {
+        return line.includes("```js");
+      });
       // Should be re-indented to 2 spaces, not 3 (1 original + 2 added)
       expect(fenceLine).toBe("  ```js");
     });

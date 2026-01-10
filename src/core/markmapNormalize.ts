@@ -1,11 +1,20 @@
-import { isFenceClosing, normalizeNewlines, parseFenceOpening, unwrapMarkdownContainerFence } from "./fences";
+import {
+  isFenceClosing,
+  normalizeNewlines,
+  parseFenceOpening,
+  unwrapMarkdownContainerFence,
+} from "./fences.ts";
 
 export function markmapNormalize(mdText: string): string {
   let s = normalizeNewlines(mdText);
   s = unwrapMarkdownContainerFence(s);
   s = s
-    .replace(/^(.+)\n=+\s*$/gm, (_, t) => `# ${t.trim()}`)
-    .replace(/^(.+)\n-+\s*$/gm, (_, t) => `## ${t.trim()}`);
+    .replace(/^(.+)\n=+\s*$/gm, function (_match, title) {
+      return `# ${title.trim()}`;
+    })
+    .replace(/^(.+)\n-+\s*$/gm, function (_match, title) {
+      return `## ${title.trim()}`;
+    });
 
   const fixedLines = s.split("\n");
   const result: string[] = [];
@@ -20,24 +29,88 @@ export function markmapNormalize(mdText: string): string {
   let fenceIndentPrefix: string | null = null;
   let inMathBlock = false;
 
-  const isFenceLine = (line: string) => Boolean(parseFenceOpening(line));
-  const isListLine = (line: string) => /^(\s*)(?:[-*+]|[0-9]+\.)\s+/.test(line);
-  const isBlockMathLine = (line: string) => line.trim().startsWith("$$");
+  function isFenceLine(line: string): boolean {
+    return Boolean(parseFenceOpening(line));
+  }
+
+  function matchListItem(line: string): RegExpMatchArray | null {
+    return line.match(/^(\s*)(?:[-*+]|\d+\.)\s+/);
+  }
+
+  function isListLine(line: string): boolean {
+    return Boolean(matchListItem(line));
+  }
+
+  function isBlockMathLine(line: string): boolean {
+    return line.trim().startsWith("$$");
+  }
+
   // Horizontal rules must use the same character repeated 3+ times (---, ***, ___)
-  const isHorizontalRule = (line: string) => /^(-{3,}|\*{3,}|_{3,})\s*$/.test(line.trim());
-  const isTableLine = (line: string) => /^\s*\|/.test(line);
-  const isBlockquoteLine = (line: string) => /^\s*>/.test(line);
-  const isHtmlBlockLine = (line: string) => /^\s*</.test(line);
+  function isHorizontalRule(line: string): boolean {
+    return /^(-{3,}|\*{3,}|_{3,})\s*$/.test(line.trim());
+  }
+
+  function isTableLine(line: string): boolean {
+    return /^\s*\|/.test(line);
+  }
+
+  function isBlockquoteLine(line: string): boolean {
+    return /^\s*>/.test(line);
+  }
+
+  function isHtmlBlockLine(line: string): boolean {
+    return /^\s*</.test(line);
+  }
+
+  function matchHeading(line: string): RegExpMatchArray | null {
+    return line.match(/^\s*(#{1,6})\s+/);
+  }
+
+  function isHeadingLine(line: string): boolean {
+    return Boolean(matchHeading(line));
+  }
+
+  function getIndentLength(line: string): number {
+    return line.match(/^(\s*)/)?.[1]?.length ?? 0;
+  }
+
+  function isBlockElementLine(line: string): boolean {
+    return isTableLine(line) || isBlockquoteLine(line) || isHtmlBlockLine(line);
+  }
+
+  function isParagraphBoundary(line: string): boolean {
+    return (
+      isFenceLine(line) ||
+      isListLine(line) ||
+      isBlockMathLine(line) ||
+      isTableLine(line) ||
+      isBlockquoteLine(line) ||
+      isHtmlBlockLine(line) ||
+      isHorizontalRule(line) ||
+      isHeadingLine(line)
+    );
+  }
 
   // Fence lines may need re-indenting when inside a list context
-  const pushFenceLine = (line: string): void => {
+  function pushFenceLine(line: string): void {
     result.push(fenceIndentPrefix ? fenceIndentPrefix + line.trimStart() : line);
-  };
+  }
 
-  const resetListContext = (): void => {
+  function resetListContext(): void {
     inListContext = false;
     listContentIndent = 0;
-  };
+  }
+
+  function shouldSkipBlankLineAfterFence(nextLine: string, nextNextLine: string): boolean {
+    if (nextLine.trim()) {
+      return false;
+    }
+    if (!isListLine(nextNextLine)) {
+      return false;
+    }
+    const nextIndent = getIndentLength(nextNextLine);
+    return nextIndent <= lastListIndent.length;
+  }
 
   for (let i = 0; i < fixedLines.length; i++) {
     const line = fixedLines[i];
@@ -63,12 +136,11 @@ export function markmapNormalize(mdText: string): string {
       fenceMarkerLen = 0;
       pushFenceLine(line);
       fenceIndentPrefix = null;
-      if (i + 2 < fixedLines.length && !fixedLines[i + 1].trim() && isListLine(fixedLines[i + 2])) {
-        const nextIndent = fixedLines[i + 2].match(/^(\s*)/)?.[1]?.length ?? 0;
-        // Only skip blank line for same-level or parent list items
-        if (nextIndent <= lastListIndent.length) {
-          i += 1;
-        }
+      if (
+        i + 2 < fixedLines.length &&
+        shouldSkipBlankLineAfterFence(fixedLines[i + 1], fixedLines[i + 2])
+      ) {
+        i += 1;
       }
       continue;
     }
@@ -90,7 +162,7 @@ export function markmapNormalize(mdText: string): string {
     }
 
     // Allow optional leading whitespace for indented headings
-    const headingMatch = line.match(/^\s*(#{1,6})\s+/);
+    const headingMatch = matchHeading(line);
     if (headingMatch) {
       lastHeadingLevel = headingMatch[1].length;
       lastExplicitHeadingLevel = lastHeadingLevel;
@@ -100,7 +172,7 @@ export function markmapNormalize(mdText: string): string {
     }
 
     // Check if line is indented enough to be list continuation
-    const lineIndent = line.match(/^(\s*)/)?.[1]?.length ?? 0;
+    const lineIndent = getIndentLength(line);
     const isListContinuation = inListContext && lineIndent >= listContentIndent;
 
     const isFreeformLine =
@@ -119,16 +191,7 @@ export function markmapNormalize(mdText: string): string {
       while (j < fixedLines.length) {
         const next = fixedLines[j];
         if (!next.trim()) break;
-        if (
-          isFenceLine(next) ||
-          isListLine(next) ||
-          isBlockMathLine(next) ||
-          isTableLine(next) ||
-          isBlockquoteLine(next) ||
-          isHtmlBlockLine(next) ||
-          isHorizontalRule(next) ||
-          next.match(/^\s*(#{1,6})\s+/)
-        ) {
+        if (isParagraphBoundary(next)) {
           break;
         }
         para += " " + next.trim();
@@ -145,7 +208,7 @@ export function markmapNormalize(mdText: string): string {
 
     result.push(line);
     if (line.trim()) {
-      const listMatch = line.match(/^(\s*)(?:[-*+]|\d+\.)\s+/);
+      const listMatch = matchListItem(line);
       if (listMatch) {
         // Entering or continuing list context
         inListContext = true;
@@ -153,8 +216,7 @@ export function markmapNormalize(mdText: string): string {
         lastListIndent = listMatch[1];
       } else if (inListContext) {
         // Exit list context if not indented enough (tables/blockquotes/HTML stay in context)
-        const isBlockElement = isTableLine(line) || isBlockquoteLine(line) || isHtmlBlockLine(line);
-        if (lineIndent < listContentIndent && !isBlockElement) {
+        if (lineIndent < listContentIndent && !isBlockElementLine(line)) {
           resetListContext();
         }
       }
