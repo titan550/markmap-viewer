@@ -11,7 +11,8 @@ export function markmapNormalize(mdText: string): string {
   const result: string[] = [];
   let lastHeadingLevel = 3;
   let lastExplicitHeadingLevel = 3;
-  let prevNonEmptyWasList = false;
+  let inListContext = false;
+  let listContentIndent = 0;
   let lastListIndent = "";
   let inFence = false;
   let fenceMarkerChar: "`" | "~" | null = null;
@@ -22,17 +23,28 @@ export function markmapNormalize(mdText: string): string {
   const isFenceLine = (line: string) => Boolean(parseFenceOpening(line));
   const isListLine = (line: string) => /^(\s*)(?:[-*+]|[0-9]+\.)\s+/.test(line);
   const isBlockMathLine = (line: string) => line.trim().startsWith("$$");
-  const isHorizontalRule = (line: string) => /^([-*_]){3,}\s*$/.test(line.trim());
+  // Horizontal rules must use the same character repeated 3+ times (---, ***, ___)
+  const isHorizontalRule = (line: string) => /^(-{3,}|\*{3,}|_{3,})\s*$/.test(line.trim());
   const isTableLine = (line: string) => /^\s*\|/.test(line);
   const isBlockquoteLine = (line: string) => /^\s*>/.test(line);
   const isHtmlBlockLine = (line: string) => /^\s*</.test(line);
+
+  // Fence lines may need re-indenting when inside a list context
+  const pushFenceLine = (line: string): void => {
+    result.push(fenceIndentPrefix ? fenceIndentPrefix + line.trimStart() : line);
+  };
+
+  const resetListContext = (): void => {
+    inListContext = false;
+    listContentIndent = 0;
+  };
 
   for (let i = 0; i < fixedLines.length; i++) {
     const line = fixedLines[i];
 
     const fenceOpen = parseFenceOpening(line);
     if (!inFence && fenceOpen) {
-      if (prevNonEmptyWasList && fenceOpen.indent.length <= 3) {
+      if (inListContext && fenceOpen.indent.length <= 3) {
         const childIndent = lastListIndent + "  ";
         if (!fenceOpen.indent.startsWith(childIndent)) {
           fenceIndentPrefix = childIndent;
@@ -41,8 +53,7 @@ export function markmapNormalize(mdText: string): string {
       inFence = true;
       fenceMarkerChar = fenceOpen.markerChar;
       fenceMarkerLen = fenceOpen.markerLen;
-      result.push(fenceIndentPrefix ? fenceIndentPrefix + line : line);
-      prevNonEmptyWasList = false;
+      pushFenceLine(line);
       continue;
     }
 
@@ -50,42 +61,47 @@ export function markmapNormalize(mdText: string): string {
       inFence = false;
       fenceMarkerChar = null;
       fenceMarkerLen = 0;
-      result.push(fenceIndentPrefix ? fenceIndentPrefix + line : line);
+      pushFenceLine(line);
       fenceIndentPrefix = null;
-      prevNonEmptyWasList = false;
       if (i + 2 < fixedLines.length && !fixedLines[i + 1].trim() && isListLine(fixedLines[i + 2])) {
-        i += 1;
+        const nextIndent = fixedLines[i + 2].match(/^(\s*)/)?.[1]?.length ?? 0;
+        // Only skip blank line for same-level or parent list items
+        if (nextIndent <= lastListIndent.length) {
+          i += 1;
+        }
       }
       continue;
     }
 
     if (inFence) {
-      result.push(fenceIndentPrefix ? fenceIndentPrefix + line : line);
-      prevNonEmptyWasList = false;
+      pushFenceLine(line);
       continue;
     }
 
     if (/^\s*\$\$\s*$/.test(line)) {
       inMathBlock = !inMathBlock;
       result.push(line);
-      prevNonEmptyWasList = false;
       continue;
     }
 
     if (inMathBlock) {
       result.push(line);
-      prevNonEmptyWasList = false;
       continue;
     }
 
-    const headingMatch = line.match(/^(#{1,6})\s+/);
+    // Allow optional leading whitespace for indented headings
+    const headingMatch = line.match(/^\s*(#{1,6})\s+/);
     if (headingMatch) {
       lastHeadingLevel = headingMatch[1].length;
       lastExplicitHeadingLevel = lastHeadingLevel;
-      prevNonEmptyWasList = false;
+      resetListContext();
       result.push(line);
       continue;
     }
+
+    // Check if line is indented enough to be list continuation
+    const lineIndent = line.match(/^(\s*)/)?.[1]?.length ?? 0;
+    const isListContinuation = inListContext && lineIndent >= listContentIndent;
 
     const isFreeformLine =
       line.trim() &&
@@ -95,7 +111,7 @@ export function markmapNormalize(mdText: string): string {
       !isBlockquoteLine(line) &&
       !isHtmlBlockLine(line) &&
       !isHorizontalRule(line) &&
-      !(prevNonEmptyWasList && /^\s{2,}\S/.test(line));
+      !isListContinuation;
 
     if (isFreeformLine) {
       let para = line.trim();
@@ -111,7 +127,7 @@ export function markmapNormalize(mdText: string): string {
           isBlockquoteLine(next) ||
           isHtmlBlockLine(next) ||
           isHorizontalRule(next) ||
-          next.match(/^(#{1,6})\s+/)
+          next.match(/^\s*(#{1,6})\s+/)
         ) {
           break;
         }
@@ -122,16 +138,25 @@ export function markmapNormalize(mdText: string): string {
       const level = Math.min(lastExplicitHeadingLevel + 1, 6);
       result.push("#".repeat(level) + " " + para);
       lastHeadingLevel = level;
-      prevNonEmptyWasList = false;
+      resetListContext();
       i = j - 1;
       continue;
     }
 
     result.push(line);
     if (line.trim()) {
-      prevNonEmptyWasList = isListLine(line);
-      if (prevNonEmptyWasList) {
-        lastListIndent = line.match(/^(\s*)/)?.[1] || "";
+      const listMatch = line.match(/^(\s*)(?:[-*+]|\d+\.)\s+/);
+      if (listMatch) {
+        // Entering or continuing list context
+        inListContext = true;
+        listContentIndent = listMatch[0].length;
+        lastListIndent = listMatch[1];
+      } else if (inListContext) {
+        // Exit list context if not indented enough (tables/blockquotes/HTML stay in context)
+        const isBlockElement = isTableLine(line) || isBlockquoteLine(line) || isHtmlBlockLine(line);
+        if (lineIndent < listContentIndent && !isBlockElement) {
+          resetListContext();
+        }
       }
     }
   }
@@ -141,5 +166,6 @@ export function markmapNormalize(mdText: string): string {
   // Convert loose lists to tight lists by removing blank lines between list items
   // This prevents Safari foreignObject rendering issues with <p> tags
   s = s.replace(/^(\s*(?:[-*+]|\d+\.)\s+.*)$\n\n(?=\s*(?:[-*+]|\d+\.)\s+)/gm, "$1\n");
-  return s.replace(/\n{3,}/g, "\n\n").trim() + "\n";
+  // Only trim trailing whitespace to preserve leading indentation on first line
+  return s.replace(/\n{3,}/g, "\n\n").trimEnd() + "\n";
 }
