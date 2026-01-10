@@ -8,12 +8,21 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
+    "lint:staged": "lint-staged",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{css,html,js,json,md,ts,yml,yaml}": [
+      "prettier --write"
+    ],
+    "*.{js,ts}": [
+      "eslint --fix"
+    ]
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
@@ -25,6 +34,7 @@
     "fake-indexeddb": "^6.2.5",
     "happy-dom": "^20.0.11",
     "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.3.3",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.19.1",
