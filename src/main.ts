@@ -1,16 +1,19 @@
-import { getDomRefs } from "./ui/dom";
-import { setupEditor } from "./ui/editor";
-import { setupExampleButton } from "./ui/example";
-import { setupPrompt } from "./ui/prompt";
-import { applyPasteText, getPasteMarkdown } from "./ui/paste";
-import { setupToolbar } from "./ui/toolbar";
-import { createRenderPipeline } from "./render/pipeline";
 import { autofixMarkdown } from "./core/autofix";
+import { markmapNormalize } from "./core/markmapNormalize";
+import { createRenderPipeline } from "./render/pipeline";
+import { expireOldSnapshots } from "./storage/db";
 import {
   createSessionStore,
   createDebouncedSave,
   restoreSessionIfNeeded,
 } from "./storage/sessionStore";
+import { getDomRefs } from "./ui/dom";
+import { setupEditor } from "./ui/editor";
+import { setupExampleButton } from "./ui/example";
+import { initHistoryModal } from "./ui/historyModal";
+import { applyPasteText, getPasteMarkdown } from "./ui/paste";
+import { setupPrompt } from "./ui/prompt";
+import { setupToolbar } from "./ui/toolbar";
 import type { MarkmapAPI } from "./types/markmap";
 
 const refs = getDomRefs();
@@ -29,6 +32,18 @@ const {
   autofixBtn,
   pasteClipboardBtn,
   resetSessionBtn,
+  saveModal,
+  saveTitle,
+  saveCancelBtn,
+  saveConfirmBtn,
+  saveSnapshotBtn,
+  openHistoryBtn,
+  openHistoryOverlayBtn,
+  historyModal,
+  closeHistoryBtn,
+  historyList,
+  historyEmpty,
+  historySearch,
 } = refs;
 
 const mmapi = window.markmap as MarkmapAPI | undefined;
@@ -65,15 +80,32 @@ const turndownService = new TurndownService({
   bulletListMarker: "-",
 });
 
-let render: (mdText: string) => Promise<void> = async () => {};
+async function noopRender(_mdText: string): Promise<void> {}
+
+let render: (mdText: string) => Promise<void> = noopRender;
 
 // Session persistence
 const sessionStore = createSessionStore();
-const debouncedSessionSave = createDebouncedSave(
-  sessionStore,
-  () => editorApi.getValue() || pasteEl.value,
-  1000
-);
+const debouncedSessionSave = createDebouncedSave(sessionStore, getCurrentMarkdown, 1000);
+
+function handleEditorRender(value: string): void {
+  void render(value);
+}
+
+function handleFit(): void {
+  mm.fit();
+}
+
+function handleContentChange(): void {
+  debouncedSessionSave.save();
+}
+
+function getPasteMarkdownFromEditor(
+  dataTransfer: DataTransfer | null,
+  fallbackOnly?: boolean
+): Promise<string> {
+  return getPasteMarkdown(dataTransfer, turndownService, fallbackOnly);
+}
 
 const editorApi = setupEditor({
   svgEl,
@@ -84,20 +116,97 @@ const editorApi = setupEditor({
   resizeHandle,
   charCount,
   pasteEl,
-  onRender: (value) => render(value),
-  onFit: () => mm.fit(),
-  getPasteMarkdown: (dt, fallbackOnly) => getPasteMarkdown(dt, turndownService, fallbackOnly),
-  onContentChange: () => debouncedSessionSave.save(),
+  onRender: handleEditorRender,
+  onFit: handleFit,
+  getPasteMarkdown: getPasteMarkdownFromEditor,
+  onContentChange: handleContentChange,
 });
 
-render = createRenderPipeline({
+function getCurrentMarkdown(): string {
+  return editorApi.getValue() || pasteEl.value;
+}
+
+function setCurrentMarkdown(markdown: string): void {
+  editorApi.setValue(markdown);
+  pasteEl.value = markdown;
+}
+
+function handleFirstRender(): void {
+  // Hide overlay and show toggle button when user first renders content
+  overlayEl.classList.add("hidden");
+  toggleEditorBtn.style.display = "block";
+}
+
+function setEditorValue(value: string): void {
+  editorApi.setValue(value);
+}
+
+const rawRender = createRenderPipeline({
   transformer,
   mm,
   overlayEl,
   pasteEl,
-  setEditorValue: (value) => editorApi.setValue(value),
+  setEditorValue,
   toggleEditorBtn,
+  onFirstRender: handleFirstRender,
 }).render;
+
+// Wrap render with normalization to sync editor/pasteEl with normalized content
+async function renderNormalized(mdText: string): Promise<void> {
+  const trimmed = mdText.trim();
+  const hasContent = trimmed.length > 0;
+  const normalized = hasContent ? markmapNormalize(mdText) : mdText;
+
+  // Sync sources if normalization changed content
+  if (hasContent && normalized !== mdText) {
+    pasteEl.value = normalized;
+    const editorContent = editorApi.getValue();
+    if (editorContent && editorContent !== normalized) {
+      editorApi.setValue(normalized);
+    }
+  }
+
+  await rawRender(normalized);
+}
+
+render = renderNormalized;
+
+// History modal state
+let lastManualDigest: string | undefined;
+
+// historyApi exposes open/close/save for keyboard shortcuts
+function loadHistoryContent(markdown: string): void {
+  setCurrentMarkdown(markdown);
+  render(markdown);
+  overlayEl.classList.add("hidden");
+}
+
+function getLastManualDigest(): string | undefined {
+  return lastManualDigest;
+}
+
+function setLastManualDigest(digest: string): void {
+  lastManualDigest = digest;
+}
+
+const historyApi = initHistoryModal({
+  historyModal,
+  closeHistoryBtn,
+  historyList,
+  historyEmpty,
+  historySearch,
+  saveSnapshotBtn,
+  openHistoryBtn,
+  openHistoryOverlayBtn,
+  saveModal,
+  saveTitle,
+  saveCancelBtn,
+  saveConfirmBtn,
+  getContent: getCurrentMarkdown,
+  loadContent: loadHistoryContent,
+  getLastManualDigest,
+  setLastManualDigest,
+});
 
 setupPrompt(copyPromptBtn);
 setupExampleButton(exampleBtn, pasteEl, render);
@@ -114,13 +223,30 @@ pasteClipboardBtn.addEventListener("click", async () => {
   }
 });
 
+function setAutofixFeedback(label: string): void {
+  autofixBtn.textContent = label;
+  autofixBtn.disabled = true;
+  window.setTimeout(() => {
+    autofixBtn.textContent = "Autofix";
+    autofixBtn.disabled = false;
+  }, 1500);
+}
+
 autofixBtn.addEventListener("click", () => {
   const current = editorApi.getValue();
-  if (current) {
-    const fixed = autofixMarkdown(current);
-    editorApi.setValue(fixed);
-    render(fixed);
+  if (!current) return;
+
+  const fixed = autofixMarkdown(current);
+  if (fixed === current) {
+    // No changes - brief visual feedback only
+    setAutofixFeedback("No changes");
+    return;
   }
+
+  // Actually changed
+  editorApi.setValue(fixed);
+  render(fixed);
+  setAutofixFeedback("Fixed!");
 });
 
 resetSessionBtn.addEventListener("click", async () => {
@@ -168,9 +294,9 @@ pasteEl.addEventListener("input", () => {
 window.addEventListener("resize", () => mm.fit());
 
 // Session persistence: lifecycle event handlers
-const saveSession = () => {
+function saveSession(): void {
   debouncedSessionSave.flush();
-};
+}
 
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") {
@@ -187,38 +313,42 @@ window.addEventListener("pageshow", async (e) => {
   if (e.persisted || document.wasDiscarded) {
     await restoreSessionIfNeeded(
       sessionStore,
-      () => editorApi.getValue() || pasteEl.value,
-      (value) => {
-        editorApi.setValue(value);
-        pasteEl.value = value;
-      },
+      getCurrentMarkdown,
+      setCurrentMarkdown,
       render,
       { force: true }
     );
   }
 });
 
-// Initial session restore on load
-window.addEventListener("load", async () => {
+// Initial load - always show landing page, user can load from history
+async function handleWindowLoad(): Promise<void> {
   pasteEl.focus();
 
-  // Restore session if editor is empty
-  try {
-    const restored = await restoreSessionIfNeeded(
-      sessionStore,
-      () => editorApi.getValue() || pasteEl.value,
-      (value) => {
-        editorApi.setValue(value);
-        pasteEl.value = value;
-      },
-      render
-    );
-    if (restored) {
-      // Hide overlay if content was restored
-      overlayEl.classList.add("hidden");
-    }
-  } catch (error) {
-    console.warn("Session restore failed:", error);
-    // Show overlay on failure - user can start fresh
+  // Auto-expire old unpinned snapshots (30 days)
+  expireOldSnapshots(30).catch(() => {
+    // Ignore expiry errors - best effort
+  });
+}
+
+window.addEventListener("load", handleWindowLoad);
+
+// Keyboard shortcuts
+function handleGlobalKeydown(e: KeyboardEvent): void {
+  const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+  const ctrlOrCmd = isMac ? e.metaKey : e.ctrlKey;
+
+  // Ctrl/Cmd+S: Save snapshot
+  if (ctrlOrCmd && e.key === "s") {
+    e.preventDefault();
+    historyApi.save();
   }
-});
+
+  // Ctrl/Cmd+Shift+O: Open history
+  if (ctrlOrCmd && e.shiftKey && e.key.toLowerCase() === "o") {
+    e.preventDefault();
+    historyApi.open();
+  }
+}
+
+document.addEventListener("keydown", handleGlobalKeydown);

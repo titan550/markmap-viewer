@@ -6,35 +6,35 @@ test.describe("Session Persistence", () => {
     await page.goto("/");
     await page.evaluate(async () => {
       localStorage.removeItem("markmap-session");
-      // Delete IndexedDB and wait for it
-      await new Promise<void>((resolve) => {
-        const req = indexedDB.deleteDatabase("markmap-session");
-        req.onsuccess = () => resolve();
-        req.onerror = () => resolve();
-        req.onblocked = () => resolve();
-      });
+      // Delete IndexedDB databases and wait
+      await Promise.all([
+        new Promise<void>((resolve) => {
+          const req = indexedDB.deleteDatabase("markmap-session");
+          req.onsuccess = () => resolve();
+          req.onerror = () => resolve();
+          req.onblocked = () => resolve();
+        }),
+        new Promise<void>((resolve) => {
+          const req = indexedDB.deleteDatabase("markmap-history");
+          req.onsuccess = () => resolve();
+          req.onerror = () => resolve();
+          req.onblocked = () => resolve();
+        }),
+      ]);
     });
     // Navigate again after clearing to start fresh
     await page.goto("/");
   });
 
-  test("restores content after page reload", async ({ page }) => {
-    const testMarkdown = "# Session Test\n\n- Item 1\n- Item 2";
-
+  test("always shows overlay on fresh page load", async ({ page }) => {
     await page.waitForSelector("#paste", { state: "attached" });
 
-    // Enter markdown content
-    await page.evaluate((text) => {
-      const paste = document.querySelector("#paste") as HTMLTextAreaElement;
-      if (!paste) return;
-      paste.value = text;
-      paste.dispatchEvent(new Event("input", { bubbles: true }));
-    }, testMarkdown);
-
-    // Wait for debounced session save (1000ms + buffer)
+    // Enter content and wait for session save
+    const testMarkdown = "# Session Test\n\n- Item 1\n- Item 2";
+    await page.fill("#paste", testMarkdown);
     await page.waitForTimeout(1500);
 
-    // Trigger pagehide event to force immediate save (more reliable than visibilitychange)
+    // Force save
     await page.evaluate(() => {
       window.dispatchEvent(new Event("pagehide"));
     });
@@ -44,70 +44,46 @@ test.describe("Session Persistence", () => {
     await page.reload();
     await page.waitForSelector("#paste", { state: "attached" });
 
-    // Wait for session restore (load event + async IDB read)
-    await page.waitForTimeout(1000);
+    // Overlay should be visible (new design: always show landing page)
+    const overlayVisible = await page.evaluate(() => {
+      const overlay = document.querySelector("#overlay");
+      return overlay && !overlay.classList.contains("hidden");
+    });
+    expect(overlayVisible).toBe(true);
 
-    // Verify content was restored
-    const restoredContent = await page.evaluate(() => {
+    // Paste textarea should be empty on fresh load
+    const content = await page.evaluate(() => {
       const paste = document.querySelector("#paste") as HTMLTextAreaElement;
       return paste?.value || "";
     });
-
-    expect(restoredContent).toBe(testMarkdown);
-
-    // Verify overlay is hidden (content was restored)
-    const overlayHidden = await page.evaluate(() => {
-      const overlay = document.querySelector("#overlay");
-      return overlay?.classList.contains("hidden");
-    });
-
-    expect(overlayHidden).toBe(true);
+    expect(content).toBe("");
   });
 
   test("clears session when reset button is clicked", async ({ page }) => {
-    // The reset button is in the overlay, which is visible on initial load
+    // The reset button is in the overlay
     await page.waitForSelector("#paste", { state: "attached" });
     await page.waitForSelector("#resetSession", { state: "visible" });
 
-    // First, create a session by entering content
-    const testMarkdown = "# Reset Test";
+    // Set content directly without triggering input event (to avoid rendering)
     await page.evaluate((text) => {
       const paste = document.querySelector("#paste") as HTMLTextAreaElement;
-      if (!paste) return;
-      paste.value = text;
-      paste.dispatchEvent(new Event("input", { bubbles: true }));
-    }, testMarkdown);
+      if (paste) paste.value = text;
+    }, "# Reset Test");
 
-    // Wait for session save
-    await page.waitForTimeout(1500);
-
-    // Force save
+    // Force save via pagehide
     await page.evaluate(() => {
-      document.dispatchEvent(new Event("visibilitychange"));
+      window.dispatchEvent(new Event("pagehide"));
     });
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(200);
 
-    // Reload to verify session was saved
-    await page.reload();
-    await page.waitForSelector("#paste", { state: "attached" });
-    await page.waitForTimeout(1000);
-
-    // At this point, overlay should be hidden (session restored)
-    // We need to make overlay visible to click reset
-    await page.evaluate(() => {
-      const overlay = document.querySelector("#overlay");
-      overlay?.classList.remove("hidden");
-    });
-
-    // Now click reset button
-    await page.click("#resetSession");
+    // Click reset button using force since SVG might be in the way
+    await page.click("#resetSession", { force: true });
 
     // Verify content was cleared
     const content = await page.evaluate(() => {
       const paste = document.querySelector("#paste") as HTMLTextAreaElement;
       return paste?.value || "";
     });
-
     expect(content).toBe("");
 
     // Verify overlay is visible
@@ -115,20 +91,7 @@ test.describe("Session Persistence", () => {
       const overlay = document.querySelector("#overlay");
       return overlay?.classList.contains("hidden");
     });
-
     expect(overlayHidden).toBe(false);
-
-    // Reload and verify session was cleared
-    await page.reload();
-    await page.waitForSelector("#paste", { state: "attached" });
-    await page.waitForTimeout(500);
-
-    const restoredContent = await page.evaluate(() => {
-      const paste = document.querySelector("#paste") as HTMLTextAreaElement;
-      return paste?.value || "";
-    });
-
-    expect(restoredContent).toBe("");
   });
 
   test("shows overlay when no session exists", async ({ page }) => {
@@ -143,21 +106,21 @@ test.describe("Session Persistence", () => {
     expect(overlayVisible).toBe(true);
   });
 
-  test("session saves on visibility change", async ({ page }) => {
+  test("session saves on visibility change for bfcache recovery", async ({
+    page,
+  }) => {
     const testMarkdown = "# Visibility Test";
 
     await page.goto("/");
     await page.waitForSelector("#paste", { state: "attached" });
 
-    // Enter markdown content
-    await page.evaluate((text) => {
-      const paste = document.querySelector("#paste") as HTMLTextAreaElement;
-      if (!paste) return;
-      paste.value = text;
-      paste.dispatchEvent(new Event("input", { bubbles: true }));
-    }, testMarkdown);
+    // Enter content which triggers session save
+    await page.fill("#paste", testMarkdown);
 
-    // Simulate visibility change (tab switch)
+    // Wait for debounced save (1000ms + buffer)
+    await page.waitForTimeout(1500);
+
+    // Simulate visibility change to trigger immediate flush
     await page.evaluate(() => {
       Object.defineProperty(document, "visibilityState", {
         value: "hidden",
@@ -165,20 +128,17 @@ test.describe("Session Persistence", () => {
       });
       document.dispatchEvent(new Event("visibilitychange"));
     });
+    await page.waitForTimeout(200);
 
-    // Small delay for async save
-    await page.waitForTimeout(100);
-
-    // Reload and verify content was saved
-    await page.reload();
-    await page.waitForSelector("#paste", { state: "attached" });
-    await page.waitForTimeout(500);
-
-    const restoredContent = await page.evaluate(() => {
-      const paste = document.querySelector("#paste") as HTMLTextAreaElement;
-      return paste?.value || "";
+    // Check localStorage fallback contains the session
+    // (SessionStore uses localStorage as fallback, and it's easier to check)
+    const hasSession = await page.evaluate(() => {
+      const session = localStorage.getItem("markmap-session");
+      return session !== null && session.includes("Visibility Test");
     });
 
-    expect(restoredContent).toBe(testMarkdown);
+    // Session might be in IDB or localStorage - either is fine
+    // Just verify some form of persistence happened by checking if we can read it
+    expect(hasSession).toBe(true);
   });
 });

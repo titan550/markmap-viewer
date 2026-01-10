@@ -13,6 +13,20 @@ export type DomRefs = {
   autofixBtn: HTMLButtonElement;
   pasteClipboardBtn: HTMLButtonElement;
   resetSessionBtn: HTMLButtonElement;
+  // Save modal
+  saveModal: HTMLElement;
+  saveTitle: HTMLInputElement;
+  saveCancelBtn: HTMLButtonElement;
+  saveConfirmBtn: HTMLButtonElement;
+  // History feature
+  saveSnapshotBtn: HTMLButtonElement;
+  openHistoryBtn: HTMLButtonElement;
+  openHistoryOverlayBtn: HTMLButtonElement;
+  historyModal: HTMLElement;
+  closeHistoryBtn: HTMLButtonElement;
+  historyList: HTMLElement;
+  historyEmpty: HTMLElement;
+  historySearch: HTMLInputElement;
 };
 
 export function getDomRefs(): DomRefs {
@@ -37,5 +51,19 @@ export function getDomRefs(): DomRefs {
     autofixBtn: get<HTMLButtonElement>("#autofix"),
     pasteClipboardBtn: get<HTMLButtonElement>("#pasteClipboard"),
     resetSessionBtn: get<HTMLButtonElement>("#resetSession"),
+    // Save modal
+    saveModal: get<HTMLElement>("#saveModal"),
+    saveTitle: get<HTMLInputElement>("#saveTitle"),
+    saveCancelBtn: get<HTMLButtonElement>("#saveCancelBtn"),
+    saveConfirmBtn: get<HTMLButtonElement>("#saveConfirmBtn"),
+    // History feature
+    saveSnapshotBtn: get<HTMLButtonElement>("#saveSnapshot"),
+    openHistoryBtn: get<HTMLButtonElement>("#openHistory"),
+    openHistoryOverlayBtn: get<HTMLButtonElement>("#openHistoryOverlay"),
+    historyModal: get<HTMLElement>("#historyModal"),
+    closeHistoryBtn: get<HTMLButtonElement>("#closeHistory"),
+    historyList: get<HTMLElement>("#historyList"),
+    historyEmpty: get<HTMLElement>("#historyEmpty"),
+    historySearch: get<HTMLInputElement>("#historySearch"),
   };
 }

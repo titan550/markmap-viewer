@@ -26,6 +26,8 @@
       <h2>Markdown Editor</h2>
       <div class="editor-header-buttons">
         <button id="autofix" type="button">Autofix</button>
+        <button id="saveSnapshot" type="button" title="Save to history (Ctrl+S)">Save</button>
+        <button id="openHistory" type="button" title="Open history (Ctrl+Shift+O)">History</button>
         <button id="closeEditor" type="button" aria-label="Close Editor">×</button>
       </div>
     </div>
@@ -50,8 +52,53 @@ flowchart TB
         <button id="pasteClipboard" type="button">Paste</button>
         <button id="copyPrompt" type="button">🤖 Prompt</button>
         <button id="example" type="button">Example</button>
-        <button id="resetSession" type="button" class="reset-session-btn" title="Clear saved session">Reset</button>
-        <a href="https://github.com/titan550/markmap-viewer" target="_blank" rel="noopener" class="github-link">GitHub</a>
+        <button id="openHistoryOverlay" type="button">History</button>
+        <button id="resetSession" type="button" title="Clear saved session">Reset</button>
+      </div>
+      <div class="card-footer">
+        <a href="https://github.com/titan550/markmap-viewer" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Save Modal -->
+  <div id="saveModal" class="save-modal hidden" role="dialog" aria-labelledby="saveModalTitle" aria-modal="true">
+    <div class="save-modal-content">
+      <h2 id="saveModalTitle">Save Diagram</h2>
+      <label for="saveTitle">Name</label>
+      <input type="text" id="saveTitle" class="save-title-input" placeholder="My Diagram" autocomplete="off">
+      <div class="save-modal-hint">
+        Saved locally. Browser may delete unpinned items. Pin to reduce risk.
+      </div>
+      <div class="save-modal-buttons">
+        <button id="saveCancelBtn" type="button">Cancel</button>
+        <button id="saveConfirmBtn" type="button">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Modal -->
+  <div id="historyModal" class="history-modal hidden" role="dialog" aria-labelledby="historyTitle" aria-modal="true">
+    <div class="history-modal-content">
+      <div class="history-modal-header">
+        <h2 id="historyTitle">Saved Diagrams</h2>
+        <input type="text" id="historySearch" class="history-search" placeholder="Search..." autocomplete="off">
+        <button id="closeHistory" type="button" class="history-close-btn" aria-label="Close">×</button>
+      </div>
+      <div class="history-modal-body">
+        <div id="historyList" class="history-list">
+          <!-- Dynamically populated -->
+        </div>
+        <div id="historyEmpty" class="history-empty hidden">
+          <p>No saved diagrams yet.</p>
+          <p class="history-empty-hint">Use the Save button in the editor to save diagrams.</p>
+        </div>
+      </div>
+      <div class="history-modal-footer">
+        <span class="storage-hint">Stored locally · Browser may delete unpinned items</span>
+        <span class="shortcut-hint"><kbd>⌘/Ctrl</kbd>+<kbd>S</kbd> Save</span>
+        <span class="shortcut-hint"><kbd>⌘/Ctrl</kbd>+<kbd>⇧</kbd>+<kbd>O</kbd> History</span>
+        <span class="shortcut-hint"><kbd>Esc</kbd> Close</span>
       </div>
     </div>
   </div>

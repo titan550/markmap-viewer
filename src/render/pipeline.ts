@@ -31,6 +31,7 @@ export type RenderPipelineDeps = {
   pasteEl: HTMLTextAreaElement;
   setEditorValue: (value: string) => void;
   toggleEditorBtn: HTMLButtonElement;
+  onFirstRender?: () => void;
 };
 
 export type RenderPipeline = {
@@ -38,29 +39,43 @@ export type RenderPipeline = {
 };
 
 export function createRenderPipeline(deps: RenderPipelineDeps): RenderPipeline {
-  const { transformer, mm, overlayEl, pasteEl, setEditorValue, toggleEditorBtn } = deps;
+  const {
+    transformer,
+    mm,
+    overlayEl,
+    pasteEl,
+    setEditorValue,
+    toggleEditorBtn,
+    onFirstRender,
+  } = deps;
   let renderedOnce = false;
   let pending = 0;
   let activeBlobUrls: string[] = [];
 
-  const hideOverlayOnce = () => {
+  function handleFirstRender(): void {
     if (!renderedOnce) {
-      overlayEl.classList.add("hidden");
-      toggleEditorBtn.style.display = "block";
       renderedOnce = true;
-
-      if (pasteEl.value) {
-        setEditorValue(pasteEl.value);
+      if (onFirstRender) {
+        onFirstRender();
+      } else {
+        // Default behavior: hide overlay and show toggle button
+        overlayEl.classList.add("hidden");
+        toggleEditorBtn.style.display = "block";
+        if (pasteEl.value) {
+          setEditorValue(pasteEl.value);
+        }
       }
     }
-  };
+  }
 
-  const render = async (mdText: string) => {
+  async function render(mdText: string): Promise<void> {
     const text = (mdText || "").trim();
     if (!text) return;
 
     const token = ++pending;
-    const shouldContinue = () => token === pending;
+    function shouldContinue(): boolean {
+      return token === pending;
+    }
 
     try {
       const normalized = markmapNormalize(text);
@@ -101,13 +116,13 @@ export function createRenderPipeline(deps: RenderPipelineDeps): RenderPipeline {
       }
 
       mm.fit();
-      hideOverlayOnce();
+      handleFirstRender();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
       console.error("Render failed:", e);
       alert("Render error: " + message);
     }
-  };
+  }
 
   return { render };
 }
