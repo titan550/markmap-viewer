@@ -60,7 +60,9 @@ export async function preRenderDiagramFencesToImages(
     const raw = block.content;
     const renderer = renderers[lang];
     const listCtx = getListContext(text, block.start);
-    const safeIndent = listCtx.isList ? listCtx.childIndent : computeSafeIndent(indent, text, block.start);
+    const safeIndent = listCtx.isList
+      ? listCtx.childIndent
+      : computeSafeIndent(indent, text, block.start);
 
     if (!renderer) {
       out += text.slice(block.start, block.end);

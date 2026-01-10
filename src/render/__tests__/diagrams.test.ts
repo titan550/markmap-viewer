@@ -98,7 +98,9 @@ describe("preRenderDiagramFencesToImages", () => {
 
   it("keeps fence when renderer throws", async () => {
     // @ts-expect-error test mock
-    mermaidRenderer.render.mockImplementationOnce(() => { throw new Error("boom"); });
+    mermaidRenderer.render.mockImplementationOnce(() => {
+      throw new Error("boom");
+    });
     const md = "```mermaid\nflowchart LR\nA-->B\n```";
     const res = await preRenderDiagramFencesToImages(md, 1, () => true);
     expect(res?.mdOut).toContain(md);

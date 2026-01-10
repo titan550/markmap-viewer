@@ -20,7 +20,10 @@ export function parseSvgSize(svgText: string): { width: number; height: number }
   return { width: 480, height: 240 };
 }
 
-export function parseSvgSizeWithUnit(svgText: string, basePx: number): { width: number; height: number } | null {
+export function parseSvgSizeWithUnit(
+  svgText: string,
+  basePx: number
+): { width: number; height: number } | null {
   const widthMatch = svgText.match(/width="([^"]+)"/i);
   const heightMatch = svgText.match(/height="([^"]+)"/i);
   if (!widthMatch || !heightMatch) return null;
@@ -28,7 +31,9 @@ export function parseSvgSizeWithUnit(svgText: string, basePx: number): { width: 
   function parseSize(value: string): number | null {
     const num = parseFloat(value);
     if (!Number.isFinite(num)) return null;
-    const unit = String(value).replace(/[0-9.\s]/g, "").toLowerCase();
+    const unit = String(value)
+      .replace(/[0-9.\s]/g, "")
+      .toLowerCase();
     if (!unit || unit === "px") return num;
     if (unit === "em") return num * basePx;
     if (unit === "ex") return num * basePx * 0.5;
@@ -65,8 +70,6 @@ export function setSvgPixelSize(svgText: string, width: number, height: number):
 
 export function svgToDataUrl(svgText: string): string {
   const cleaned = svgText.replace(/<\?xml[^>]*\?>\s*/i, "");
-  const encoded = encodeURIComponent(cleaned)
-    .replace(/'/g, "%27")
-    .replace(/"/g, "%22");
+  const encoded = encodeURIComponent(cleaned).replace(/'/g, "%27").replace(/"/g, "%22");
   return `data:image/svg+xml,${encoded}`;
 }

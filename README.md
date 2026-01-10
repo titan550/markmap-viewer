@@ -23,10 +23,14 @@ Works best with headings and lists:
 
 ```markdown
 # Main Topic
+
 ## Subtopic 1
+
 - Point A
 - Point B
+
 ## Subtopic 2
+
 - Point C
 ```
 

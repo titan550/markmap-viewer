@@ -239,8 +239,7 @@ export async function restoreSessionIfNeeded(
     }
 
     const currentValue = getCurrentValue();
-    const shouldRestore =
-      options.force || !currentValue || currentValue.trim() === "";
+    const shouldRestore = options.force || !currentValue || currentValue.trim() === "";
 
     if (shouldRestore) {
       setValue(session.markdown);

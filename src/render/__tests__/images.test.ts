@@ -53,7 +53,9 @@ describe("svgToPngBlob", () => {
       decoding = "async";
       onload: (() => void) | null = null;
       onerror: (() => void) | null = null;
-      decode() { return Promise.resolve(); }
+      decode() {
+        return Promise.resolve();
+      }
       set src(_value: string) {
         setTimeout(() => this.onload && this.onload(), 0);
       }
@@ -61,7 +63,7 @@ describe("svgToPngBlob", () => {
     // @ts-expect-error test mock
     window.Image = MockImage;
 
-    const blob = await svgToPngBlob("<svg width=\"10\" height=\"10\"></svg>", 10, 10, 1);
+    const blob = await svgToPngBlob('<svg width="10" height="10"></svg>', 10, 10, 1);
     expect(blob.type).toBe("image/png");
 
     document.createElement = originalCreate;
@@ -95,7 +97,7 @@ describe("svgToPngBlob", () => {
     // @ts-expect-error test mock
     window.Image = MockImage;
 
-    const blob = await svgToPngBlob("<svg width=\"10\" height=\"10\"></svg>", 10, 10, 1);
+    const blob = await svgToPngBlob('<svg width="10" height="10"></svg>', 10, 10, 1);
     expect(blob.type).toBe("image/png");
 
     document.createElement = originalCreate;

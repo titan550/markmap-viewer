@@ -106,9 +106,7 @@ test.describe("Session Persistence", () => {
     expect(overlayVisible).toBe(true);
   });
 
-  test("session saves on visibility change for bfcache recovery", async ({
-    page,
-  }) => {
+  test("session saves on visibility change for bfcache recovery", async ({ page }) => {
     const testMarkdown = "# Visibility Test";
 
     await page.goto("/");

@@ -318,13 +318,9 @@ window.addEventListener("blur", saveSession);
 window.addEventListener("pageshow", async (e) => {
   // @ts-expect-error wasDiscarded is not in TS lib
   if (e.persisted || document.wasDiscarded) {
-    await restoreSessionIfNeeded(
-      sessionStore,
-      getCurrentMarkdown,
-      setCurrentMarkdown,
-      render,
-      { force: true }
-    );
+    await restoreSessionIfNeeded(sessionStore, getCurrentMarkdown, setCurrentMarkdown, render, {
+      force: true,
+    });
   }
 });
 

@@ -18,7 +18,10 @@ export async function preloadImages(urls: string[], shouldContinue: () => boolea
   }
 }
 
-export async function waitForDomImages(root: ParentNode, shouldContinue: () => boolean): Promise<void> {
+export async function waitForDomImages(
+  root: ParentNode,
+  shouldContinue: () => boolean
+): Promise<void> {
   if (!root) return;
   const imgs = Array.from(root.querySelectorAll("img"));
   if (!imgs.length) return;
@@ -42,7 +45,12 @@ export async function waitForDomImages(root: ParentNode, shouldContinue: () => b
   );
 }
 
-export async function svgToPngBlob(svgText: string, width: number, height: number, scale = 1): Promise<Blob> {
+export async function svgToPngBlob(
+  svgText: string,
+  width: number,
+  height: number,
+  scale = 1
+): Promise<Blob> {
   const svgBlob = new Blob([sanitizeSvgForXml(svgText)], { type: "image/svg+xml" });
   const url = URL.createObjectURL(svgBlob);
   try {

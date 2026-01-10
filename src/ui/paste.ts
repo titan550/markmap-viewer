@@ -43,7 +43,10 @@ export function clipboardToMarkmapMdFromDataTransfer(
 
 export async function getPasteTextFallback(): Promise<string> {
   if (!navigator.clipboard?.readText) return "";
-  return navigator.clipboard.readText().then((text) => text || "").catch(() => "");
+  return navigator.clipboard
+    .readText()
+    .then((text) => text || "")
+    .catch(() => "");
 }
 
 export async function getPasteMarkdown(

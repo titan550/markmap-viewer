@@ -20,10 +20,14 @@ async function loadFixture(page) {
 test.describe("nested lists + code", () => {
   test("renders list text from fixtures_core.md", async ({ page }) => {
     await loadFixture(page);
-    await page.waitForFunction(() => {
-      const nodes = Array.from(document.querySelectorAll("foreignObject"));
-      return nodes.some((node) => (node.textContent || "").includes("Level 1"));
-    }, null, { timeout: 25000 });
+    await page.waitForFunction(
+      () => {
+        const nodes = Array.from(document.querySelectorAll("foreignObject"));
+        return nodes.some((node) => (node.textContent || "").includes("Level 1"));
+      },
+      null,
+      { timeout: 25000 }
+    );
 
     const hasLevel1 = await page.evaluate(() => {
       const nodes = Array.from(document.querySelectorAll("foreignObject"));

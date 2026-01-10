@@ -18,7 +18,7 @@ describe("sanitizeMermaidLabel", () => {
     const raw = "Line1<br/>Line2 &quot;A&quot; #96; &#x3c;";
     const out = sanitizeMermaidLabel(raw, { useMarkdownStrings: true, lineBreak: "\\n" });
     expect(out).toContain("Line1\\nLine2");
-    expect(out).toContain("\"A\"");
+    expect(out).toContain('"A"');
     expect(out).toContain("#96;");
     expect(out).toContain("<");
   });
@@ -26,9 +26,9 @@ describe("sanitizeMermaidLabel", () => {
 
 describe("sanitizeMermaidSourceLabels", () => {
   it("wraps flowchart node labels with markdown strings", () => {
-    const src = "flowchart LR\nA[\"hello\"]";
+    const src = 'flowchart LR\nA["hello"]';
     const out = sanitizeMermaidSourceLabels(src);
-    expect(out).toContain("A[\"hello\"]");
+    expect(out).toContain('A["hello"]');
   });
 
   it("quotes unquoted labels and sanitizes them", () => {
@@ -56,33 +56,33 @@ describe("sanitizeMermaidSourceLabels", () => {
   });
 
   it("normalizes diamond labels with quoted markdown strings", () => {
-    const src = "flowchart LR\nA{\"`Uncertain?`\"}";
+    const src = 'flowchart LR\nA{"`Uncertain?`"}';
     const out = sanitizeMermaidSourceLabels(src);
     expect(out).toContain('A{"Uncertain?"}');
   });
 
   it("decodes entity escapes in flowchart labels", () => {
-    const src = "flowchart LR\nA[\"`1#41; Plan\\nline`\"]";
+    const src = 'flowchart LR\nA["`1#41; Plan\\nline`"]';
     const out = sanitizeMermaidSourceLabels(src);
     expect(out).toContain("1) Plan<br/>line");
   });
 
   it("sanitizes sequence diagram message labels", () => {
-    const src = "sequenceDiagram\nA->>B: \"`Line1\\nLine2 #32;`\"";
+    const src = 'sequenceDiagram\nA->>B: "`Line1\\nLine2 #32;`"';
     const out = sanitizeMermaidSourceLabels(src);
-    expect(out).toContain(": \"Line1<br/>Line2  \"");
+    expect(out).toContain(': "Line1<br/>Line2  "');
   });
 
   it("sanitizes state diagram edge labels", () => {
-    const src = "stateDiagram-v2\nBuild --> Assess: \"tests#47;reviews\"";
+    const src = 'stateDiagram-v2\nBuild --> Assess: "tests#47;reviews"';
     const out = sanitizeMermaidSourceLabels(src);
-    expect(out).toContain(": \"tests/reviews\"");
+    expect(out).toContain(': "tests/reviews"');
   });
 
   it("preserves quoted stadium labels with markdown strings", () => {
-    const src = "flowchart LR\nSTART([\"`Hello`\"])\n";
+    const src = 'flowchart LR\nSTART(["`Hello`"])\n';
     const out = sanitizeMermaidSourceLabels(src);
-    expect(out).toContain("START([\"Hello\"])");
+    expect(out).toContain('START(["Hello"])');
   });
 
   it("normalizes nbsp entities outside labels", () => {

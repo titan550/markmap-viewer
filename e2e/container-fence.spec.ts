@@ -16,7 +16,8 @@ test.describe("container fence unwrap", () => {
   test.setTimeout(60000);
 
   test("unwraps markdown container and renders diagrams", async ({ page }) => {
-    const markdown = "````markdown\n# Title\n\n- Item\n\n```mermaid\nflowchart LR\nA-->B\n```\n````";
+    const markdown =
+      "````markdown\n# Title\n\n- Item\n\n```mermaid\nflowchart LR\nA-->B\n```\n````";
     await loadMarkdown(page, markdown);
 
     await page.waitForFunction(

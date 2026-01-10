@@ -3,9 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const fixturesDir = path.join(process.cwd(), "test");
-const fixtureFiles = fs
-  .readdirSync(fixturesDir)
-  .filter((file) => file.endsWith(".md"));
+const fixtureFiles = fs.readdirSync(fixturesDir).filter((file) => file.endsWith(".md"));
 
 const diagramLanguages = [
   "mermaid",
@@ -53,10 +51,9 @@ flowchart LR
 
     await loadMarkdown(page, markdown);
 
-    await page.waitForFunction(
-      () => document.querySelectorAll("img.mermaid-img").length >= 2,
-      { timeout: 30000 }
-    );
+    await page.waitForFunction(() => document.querySelectorAll("img.mermaid-img").length >= 2, {
+      timeout: 30000,
+    });
 
     // Wait for <p> unwrapping to complete (fixSafariForeignObjectParagraphs runs after render)
     await page.waitForFunction(
@@ -65,8 +62,8 @@ flowchart LR
     );
 
     // Diagrams should not be wrapped in <p> tags (causes Safari rendering bug)
-    const pWrappedDiagrams = await page.evaluate(() =>
-      document.querySelectorAll("foreignObject p .diagram-wrap").length
+    const pWrappedDiagrams = await page.evaluate(
+      () => document.querySelectorAll("foreignObject p .diagram-wrap").length
     );
     expect(pWrappedDiagrams).toBe(0);
 

@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../diagrams", () => ({
-  preRenderDiagramFencesToImages: vi.fn(async (md: string) => ({ mdOut: md, blobUrls: ["blob:diagram"] })),
+  preRenderDiagramFencesToImages: vi.fn(async (md: string) => ({
+    mdOut: md,
+    blobUrls: ["blob:diagram"],
+  })),
 }));
 vi.mock("../math", () => ({
   preRenderMathToImages: vi.fn(async (md: string) => ({ mdOut: md })),

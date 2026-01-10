@@ -52,9 +52,7 @@ function openDB(): Promise<IDBDatabase> {
 /**
  * Get a snapshot by its digest (hash).
  */
-export async function getByDigest(
-  digest: string
-): Promise<SnapshotRecord | null> {
+export async function getByDigest(digest: string): Promise<SnapshotRecord | null> {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readonly");
@@ -91,10 +89,7 @@ export type SaveResult = {
  * Save a snapshot. Returns the saved record and whether it was newly created.
  * If content already exists (same digest), updates accessedAt and returns existing.
  */
-export async function saveSnapshot(
-  markdown: string,
-  customTitle?: string
-): Promise<SaveResult> {
+export async function saveSnapshot(markdown: string, customTitle?: string): Promise<SaveResult> {
   const trimmed = markdown.trim();
   if (!trimmed) {
     throw new Error("Cannot save empty content");
@@ -202,10 +197,7 @@ export async function togglePin(id: string): Promise<SnapshotRecord | null> {
 /**
  * Update the title of a snapshot.
  */
-export async function updateTitle(
-  id: string,
-  newTitle: string
-): Promise<SnapshotRecord | null> {
+export async function updateTitle(id: string, newTitle: string): Promise<SnapshotRecord | null> {
   const record = await getById(id);
   if (!record) return null;
 

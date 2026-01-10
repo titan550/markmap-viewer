@@ -40,18 +40,29 @@ export function sanitizeMermaidLabel(raw: string, opts: MermaidSanitizeOptions =
   function decodeNumericEntity(num: string): string | null {
     const n = Number(num);
     if (!Number.isFinite(n) || n <= 0) return null;
-    try { return String.fromCodePoint(n); } catch { return null; }
+    try {
+      return String.fromCodePoint(n);
+    } catch {
+      return null;
+    }
   }
 
   function decodeHexEntity(hex: string): string | null {
     const n = parseInt(hex, 16);
     if (!Number.isFinite(n) || n <= 0) return null;
-    try { return String.fromCodePoint(n); } catch { return null; }
+    try {
+      return String.fromCodePoint(n);
+    } catch {
+      return null;
+    }
   }
 
   if (useMarkdownStrings || (!useMarkdownStrings && relaxed)) {
     s = s.replace(/#(\d{1,7});/g, (_, num) => decodeNumericEntity(num) ?? `#${num};`);
-    s = s.replace(/#([A-Za-z][A-Za-z0-9]{1,31});/g, (_, name) => decodeNamedEntity(name) ?? `#${name};`);
+    s = s.replace(
+      /#([A-Za-z][A-Za-z0-9]{1,31});/g,
+      (_, name) => decodeNamedEntity(name) ?? `#${name};`
+    );
     s = s.replace(/&#(\d+);/g, (_, num) => decodeNumericEntity(num) ?? `&#${num};`);
     s = s.replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => decodeHexEntity(hex) ?? `&#x${hex};`);
     s = s.replace(/&([A-Za-z][A-Za-z0-9]+);/g, (_, name) => decodeNamedEntity(name) ?? `&${name};`);
@@ -88,7 +99,7 @@ export function sanitizeMermaidLabel(raw: string, opts: MermaidSanitizeOptions =
       if (!useMarkdownStrings && relaxed) {
         if (cp < 32) {
           out += `#${cp};`;
-        } else if (ch === "\"") {
+        } else if (ch === '"') {
           out += "#34;";
         } else {
           out += ch;
@@ -131,11 +142,7 @@ export function sanitizeMermaidSourceLabels(
   mermaidSource: string,
   opts: MermaidSourceSanitizeOptions = {}
 ): string {
-  const {
-    useMarkdownStrings = true,
-    wrapEdgeLabels = true,
-    normalizeSpaceEntities = true,
-  } = opts;
+  const { useMarkdownStrings = true, wrapEdgeLabels = true, normalizeSpaceEntities = true } = opts;
   const patterns = [
     { open: '(["', close: '"])' },
     { open: "(['", close: "'])" },
@@ -170,11 +177,10 @@ export function sanitizeMermaidSourceLabels(
   function sanitizeWithMode(inner: string, relaxedMode = preferPlainLabels): string {
     const trimmed = String(inner || "");
     const isWrappedMarkdown =
-      trimmed.startsWith("`") &&
-      trimmed.endsWith("`") &&
-      !trimmed.slice(1, -1).includes("`");
+      trimmed.startsWith("`") && trimmed.endsWith("`") && !trimmed.slice(1, -1).includes("`");
     const core = isWrappedMarkdown ? trimmed.slice(1, -1) : trimmed;
-    const useMarkdown = useMarkdownStrings && !preferPlainLabels && (isWrappedMarkdown || !core.includes("`"));
+    const useMarkdown =
+      useMarkdownStrings && !preferPlainLabels && (isWrappedMarkdown || !core.includes("`"));
     const localOpts = {
       ...opts,
       useMarkdownStrings: useMarkdown,
@@ -188,27 +194,28 @@ export function sanitizeMermaidSourceLabels(
   function sanitizeColonLabel(raw: string, quote: string): string {
     const trimmed = String(raw || "").trim();
     const isWrappedMarkdown =
-      trimmed.startsWith("`") &&
-      trimmed.endsWith("`") &&
-      !trimmed.slice(1, -1).includes("`");
+      trimmed.startsWith("`") && trimmed.endsWith("`") && !trimmed.slice(1, -1).includes("`");
     const core = isWrappedMarkdown ? trimmed.slice(1, -1) : trimmed;
     const cleaned = sanitizeMermaidLabel(core, {
       ...opts,
       useMarkdownStrings: true,
       lineBreak: "<br/>",
     });
-    if (quote === "\"") return cleaned.replace(/"/g, "#quot;");
+    if (quote === '"') return cleaned.replace(/"/g, "#quot;");
     if (quote === "'") return cleaned.replace(/'/g, "#39;");
     return cleaned;
   }
 
   function sanitizeColonLabels(srcText: string): string {
-    return srcText.replace(/:\s*(`([^`]*?)`|"([^"]*?)"|'([^']*?)'|([^\n]*))/g, (_full, _g1, bt, dq, sq, raw) => {
-      const text = bt ?? dq ?? sq ?? raw ?? "";
-      const quote = bt ? "`" : dq ? "\"" : sq ? "'" : "";
-      const cleaned = sanitizeColonLabel(text.trim(), quote);
-      return `: "${cleaned}"`;
-    });
+    return srcText.replace(
+      /:\s*(`([^`]*?)`|"([^"]*?)"|'([^']*?)'|([^\n]*))/g,
+      (_full, _g1, bt, dq, sq, raw) => {
+        const text = bt ?? dq ?? sq ?? raw ?? "";
+        const quote = bt ? "`" : dq ? '"' : sq ? "'" : "";
+        const cleaned = sanitizeColonLabel(text.trim(), quote);
+        return `: "${cleaned}"`;
+      }
+    );
   }
 
   if (isSequenceDiagram || isStateDiagram) {
@@ -236,13 +243,19 @@ export function sanitizeMermaidSourceLabels(
   while (i < src.length) {
     let p: { open: string; close: string } | null = null;
     for (const cand of patterns) {
-      if (src.startsWith(cand.open, i)) { p = cand; break; }
+      if (src.startsWith(cand.open, i)) {
+        p = cand;
+        break;
+      }
     }
 
     if (p) {
       const start = i + p.open.length;
       const end = src.indexOf(p.close, start);
-      if (end === -1) { out += src.slice(i); break; }
+      if (end === -1) {
+        out += src.slice(i);
+        break;
+      }
       const inner = src.slice(start, end);
       const wrapped = sanitizeWithMode(inner);
       out += p.open + wrapped + p.close;
@@ -250,7 +263,11 @@ export function sanitizeMermaidSourceLabels(
       continue;
     }
 
-    if (allowUnquotedNodeLabels && (src[i] === "[" || src[i] === "(" || src[i] === "{") && isLikelyNodeLabelStart(i)) {
+    if (
+      allowUnquotedNodeLabels &&
+      (src[i] === "[" || src[i] === "(" || src[i] === "{") &&
+      isLikelyNodeLabelStart(i)
+    ) {
       const open = src[i];
       if (src[i + 1] === open) {
         out += src[i++];
@@ -259,9 +276,12 @@ export function sanitizeMermaidSourceLabels(
       const close = open === "[" ? "]" : open === "(" ? ")" : "}";
       const start = i + 1;
       const end = src.indexOf(close, start);
-      if (end === -1) { out += src.slice(i); break; }
+      if (end === -1) {
+        out += src.slice(i);
+        break;
+      }
       let inner = src.slice(start, end);
-      if (inner.includes("\"")) {
+      if (inner.includes('"')) {
         inner = inner.replace(/"/g, "'");
       }
       const wrapped = sanitizeWithMode(inner);
@@ -275,7 +295,10 @@ export function sanitizeMermaidSourceLabels(
     if (allowEdgeLabels && src[i] === "|" && isEdgeLabelStart(i)) {
       const start = i + 1;
       const end = src.indexOf("|", start);
-      if (end === -1) { out += src.slice(i); break; }
+      if (end === -1) {
+        out += src.slice(i);
+        break;
+      }
       const inner = src.slice(start, end);
       const wrapped = sanitizeWithMode(inner, false);
       out += "|" + wrapped + "|";

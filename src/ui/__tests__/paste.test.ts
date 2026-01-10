@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { applyPasteText, clipboardToMarkmapMdFromDataTransfer, getPasteMarkdown, looksLikeMarkdown } from "../paste";
+import {
+  applyPasteText,
+  clipboardToMarkmapMdFromDataTransfer,
+  getPasteMarkdown,
+  looksLikeMarkdown,
+} from "../paste";
 
 const makeDt = (plain: string, html = "") => ({
   getData: (type: string) => (type === "text/plain" ? plain : html),
@@ -32,7 +37,11 @@ describe("clipboardToMarkmapMdFromDataTransfer", () => {
 
   it("falls back to plain text when turndown fails", () => {
     const dt = makeDt("Plain text", "<div>Ignored</div>");
-    const brokenTurndown = { turndown: () => { throw new Error("fail"); } };
+    const brokenTurndown = {
+      turndown: () => {
+        throw new Error("fail");
+      },
+    };
     const out = clipboardToMarkmapMdFromDataTransfer(dt as DataTransfer, brokenTurndown);
     expect(out).toContain("Plain text");
   });
@@ -41,7 +50,9 @@ describe("clipboardToMarkmapMdFromDataTransfer", () => {
 describe("applyPasteText", () => {
   it("replaces paste text", () => {
     const textarea = document.createElement("textarea");
-    const render = (val: string) => { textarea.dataset.rendered = val; };
+    const render = (val: string) => {
+      textarea.dataset.rendered = val;
+    };
     applyPasteText("# Title", textarea, render, true);
     expect(textarea.value).toBe("# Title");
   });

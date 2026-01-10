@@ -239,9 +239,7 @@ export function initHistoryModal(deps: HistoryModalDeps): {
     // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      snapshots = snapshots.filter((s) =>
-        s.title.toLowerCase().includes(query)
-      );
+      snapshots = snapshots.filter((s) => s.title.toLowerCase().includes(query));
     }
 
     // Sort: pinned first, then by createdAt descending
@@ -287,9 +285,7 @@ export function initHistoryModal(deps: HistoryModalDeps): {
     // Check if current content is dirty
     const dirty = await isDirty(getContent, getLastManualDigest);
     if (dirty) {
-      const confirmed = confirm(
-        "You have unsaved changes. Load this diagram anyway?"
-      );
+      const confirmed = confirm("You have unsaved changes. Load this diagram anyway?");
       if (!confirmed) return;
     }
 
@@ -350,10 +346,7 @@ export function initHistoryModal(deps: HistoryModalDeps): {
     saveSnapshotBtn.textContent = "Save";
   }
 
-  function showSaveButtonResult(
-    label: string,
-    className?: "saved" | "duplicate"
-  ): void {
+  function showSaveButtonResult(label: string, className?: "saved" | "duplicate"): void {
     saveSnapshotBtn.classList.remove("saving");
     if (className) {
       saveSnapshotBtn.classList.add(className);

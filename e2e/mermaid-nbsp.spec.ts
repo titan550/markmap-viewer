@@ -24,16 +24,19 @@ const htmlSource = `
 async function pasteHtml(page, html: string, plain: string) {
   await page.goto("/");
   await page.waitForSelector("#paste", { state: "attached" });
-  await page.evaluate(({ htmlText, plainText }) => {
-    const paste = document.querySelector("#paste");
-    if (!paste) return;
-    const dt = new DataTransfer();
-    dt.setData("text/html", htmlText);
-    dt.setData("text/plain", plainText);
-    const ev = new Event("paste", { bubbles: true, cancelable: true });
-    Object.defineProperty(ev, "clipboardData", { value: dt });
-    paste.dispatchEvent(ev);
-  }, { htmlText: html, plainText: plain });
+  await page.evaluate(
+    ({ htmlText, plainText }) => {
+      const paste = document.querySelector("#paste");
+      if (!paste) return;
+      const dt = new DataTransfer();
+      dt.setData("text/html", htmlText);
+      dt.setData("text/plain", plainText);
+      const ev = new Event("paste", { bubbles: true, cancelable: true });
+      Object.defineProperty(ev, "clipboardData", { value: dt });
+      paste.dispatchEvent(ev);
+    },
+    { htmlText: html, plainText: plain }
+  );
   await page.waitForTimeout(2500);
 }
 
@@ -46,7 +49,9 @@ test.describe("mermaid nbsp handling", () => {
     );
 
     const svgText = await page.evaluate(async () => {
-      const img = document.querySelector("foreignObject img.diagram-img") as HTMLImageElement | null;
+      const img = document.querySelector(
+        "foreignObject img.diagram-img"
+      ) as HTMLImageElement | null;
       if (!img?.src) return "";
       const res = await fetch(img.src);
       return await res.text();

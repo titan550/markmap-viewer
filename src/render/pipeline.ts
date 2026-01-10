@@ -39,15 +39,8 @@ export type RenderPipeline = {
 };
 
 export function createRenderPipeline(deps: RenderPipelineDeps): RenderPipeline {
-  const {
-    transformer,
-    mm,
-    overlayEl,
-    pasteEl,
-    setEditorValue,
-    toggleEditorBtn,
-    onFirstRender,
-  } = deps;
+  const { transformer, mm, overlayEl, pasteEl, setEditorValue, toggleEditorBtn, onFirstRender } =
+    deps;
   let renderedOnce = false;
   let pending = 0;
   let activeBlobUrls: string[] = [];

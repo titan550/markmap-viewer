@@ -1,7 +1,11 @@
 export function revokeBlobs(urls: string[] | null | undefined): void {
   if (!urls?.length) return;
   for (const url of urls) {
-    try { URL.revokeObjectURL(url); } catch { /* ignore revoke errors */ }
+    try {
+      URL.revokeObjectURL(url);
+    } catch {
+      /* ignore revoke errors */
+    }
   }
 }
 

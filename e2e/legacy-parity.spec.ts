@@ -43,9 +43,8 @@ test.describe("legacy parity (transitional)", () => {
     expect(currentCounts.diagramImgs).toBeGreaterThanOrEqual(legacyCounts.diagramImgs);
     expect(currentCounts.mermaidImgs).toBeGreaterThanOrEqual(legacyCounts.mermaidImgs);
     expect(currentCounts.mathImgs).toBeGreaterThanOrEqual(
-      legacyCounts.mathImgs + await legacyPage.evaluate(() =>
-        document.querySelectorAll("img.math-line-img").length
-      )
+      legacyCounts.mathImgs +
+        (await legacyPage.evaluate(() => document.querySelectorAll("img.math-line-img").length))
     );
 
     await legacyPage.close();

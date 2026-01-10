@@ -1,26 +1,28 @@
-# 🧠📦 LLMs (ChatGPT-class): A Visual Mental Model (Training → Chat)  
+# 🧠📦 LLMs (ChatGPT-class): A Visual Mental Model (Training → Chat)
 
-## 🎭 Council lenses (how to interrogate/learn this topic)  
-- 👩‍🔬 **ML Researcher**  
-  - Objective: what is optimized? why Transformers? why RL “reasoning” works?  
-  - Questions: *what signals are verifiable? what failures are irreducible?*  
-- 🧑‍💻 **Systems/Infra Engineer**  
-  - Objective: data → tokens → throughput → GPU scaling, bottlenecks  
-  - Questions: *where cost sits? what dominates compute? what can be cached?*  
-- 🧠 **Cognitive/Psych lens**  
-  - Objective: why outputs feel “agentic” but aren’t; user traps  
-  - Questions: *why confidence ≠ correctness? why “it sounds right”?*  
-- 🔐 **Safety/Privacy lens**  
-  - Objective: PII removal, refusal behaviors, tool-use risk surface  
-  - Questions: *what to filter? what to refuse? what to cite?*  
-- 🧪 **Empirical skeptic**  
-  - Objective: verify claims, measure error modes, use tools for ground truth  
-  - Questions: *what’s the eval? what’s the baseline? what’s the failure rate?*  
+## 🎭 Council lenses (how to interrogate/learn this topic)
 
-## 🗺️ 0) End-to-end mental model (one sentence)  
-- **LLM = next-token probability engine**; “chat” behavior = **(pretrain knowledge) + (posttrain conversation imitation) + (optional RL/RLHF shaping) + (optional tools injecting fresh context)**  
+- 👩‍🔬 **ML Researcher**
+  - Objective: what is optimized? why Transformers? why RL “reasoning” works?
+  - Questions: _what signals are verifiable? what failures are irreducible?_
+- 🧑‍💻 **Systems/Infra Engineer**
+  - Objective: data → tokens → throughput → GPU scaling, bottlenecks
+  - Questions: _where cost sits? what dominates compute? what can be cached?_
+- 🧠 **Cognitive/Psych lens**
+  - Objective: why outputs feel “agentic” but aren’t; user traps
+  - Questions: _why confidence ≠ correctness? why “it sounds right”?_
+- 🔐 **Safety/Privacy lens**
+  - Objective: PII removal, refusal behaviors, tool-use risk surface
+  - Questions: _what to filter? what to refuse? what to cite?_
+- 🧪 **Empirical skeptic**
+  - Objective: verify claims, measure error modes, use tools for ground truth
+  - Questions: _what’s the eval? what’s the baseline? what’s the failure rate?_
 
-- Diagram: pipeline overview  
+## 🗺️ 0) End-to-end mental model (one sentence)
+
+- **LLM = next-token probability engine**; “chat” behavior = **(pretrain knowledge) + (posttrain conversation imitation) + (optional RL/RLHF shaping) + (optional tools injecting fresh context)**
+
+- Diagram: pipeline overview
   ```mermaid
   flowchart LR
     START["`START\nGoal: build a chat assistant`"]
@@ -34,21 +36,23 @@
     DEP --> END["`END\nUser sees streaming text`"]
   ```
 
-## 🧱 1) Pre-training data: “download + process the internet”  
-- 🎯 Goals  
-  - **Quantity**: lots of text  
-  - **Quality**: minimize junk (spam, boilerplate, malware)  
-  - **Diversity**: broad topic coverage (helps generalization)  
+## 🧱 1) Pre-training data: “download + process the internet”
 
-- 🧹 Typical pipeline stages (conceptual)  
-  - URL/domain filtering (blocklists/allowlists)  
-  - HTML → text extraction (remove nav/ads/scripts)  
-  - Language ID filtering (choose mono- vs multi-lingual mix)  
-  - Deduplication (exact + near-dup; doc and/or passage level)  
-  - Quality scoring (heuristics + learned filters)  
-  - PII filtering (emails/addresses/SSNs; imperfect)  
+- 🎯 Goals
+  - **Quantity**: lots of text
+  - **Quality**: minimize junk (spam, boilerplate, malware)
+  - **Diversity**: broad topic coverage (helps generalization)
 
-- Diagram: text dataset curation as a “funnel”  
+- 🧹 Typical pipeline stages (conceptual)
+  - URL/domain filtering (blocklists/allowlists)
+  - HTML → text extraction (remove nav/ads/scripts)
+  - Language ID filtering (choose mono- vs multi-lingual mix)
+  - Deduplication (exact + near-dup; doc and/or passage level)
+  - Quality scoring (heuristics + learned filters)
+  - PII filtering (emails/addresses/SSNs; imperfect)
+
+- Diagram: text dataset curation as a “funnel”
+
   ```mermaid
   flowchart LR
     START["`START\nRaw web snapshots (HTML)`"] --> U["`URL / domain filter\nblock malware/spam/adult\n+ policy exclusions`"]
@@ -60,33 +64,34 @@
     PII --> END["`END\nClean corpus → tokenize`"]
   ```
 
-- ⚠️ Tradeoffs (why this is hard)  
-  - **Over-filter** ⇒ lose rare domains/skills  
-  - **Under-filter** ⇒ spam memorization, toxicity, injection patterns  
-  - **Language mix** ⇒ better multilingual, but less English depth (fixed compute budget)  
+- ⚠️ Tradeoffs (why this is hard)
+  - **Over-filter** ⇒ lose rare domains/skills
+  - **Under-filter** ⇒ spam memorization, toxicity, injection patterns
+  - **Language mix** ⇒ better multilingual, but less English depth (fixed compute budget)
 
-## 🔤 2) Tokenization: text → tokens (IDs), not “characters”  
-- Core constraint  
-  - Neural nets want **1D sequences** over a **finite vocabulary**  
-  - Need compromise: **vocab size** ↔ **sequence length**  
+## 🔤 2) Tokenization: text → tokens (IDs), not “characters”
 
-- Byte-level intuition  
-  - UTF-8 text → bytes (0..255)  
-  - Bytes alone ⇒ long sequences (expensive)  
-  - BPE-like merges: “common adjacent symbols become 1 new symbol”  
+- Core constraint
+  - Neural nets want **1D sequences** over a **finite vocabulary**
+  - Need compromise: **vocab size** ↔ **sequence length**
 
-- 🔁 BPE merge intuition  
-  - Find frequent pairs `(a,b)`; create new token `c`; replace `(a,b)` with `c`; repeat  
-  - End state: ~O(10^5) vocab (varies by tokenizer/model family)  
+- Byte-level intuition
+  - UTF-8 text → bytes (0..255)
+  - Bytes alone ⇒ long sequences (expensive)
+  - BPE-like merges: “common adjacent symbols become 1 new symbol”
 
-- Mini example (why tokenization surprises you)  
-  - “hello world” might be **2 tokens** (e.g., `hello`, `␠world`)  
-  - Extra spaces / casing ⇒ different tokens ⇒ different behavior  
+- 🔁 BPE merge intuition
+  - Find frequent pairs `(a,b)`; create new token `c`; replace `(a,b)` with `c`; repeat
+  - End state: ~O(10^5) vocab (varies by tokenizer/model family)
 
-- 🚨 Practical consequences  
-  - **Spelling/counting** often fails because model “sees” token chunks, not letters  
-  - **Weird boundary effects**: emojis, punctuation, whitespace matter  
-  - **Compression**: tokens are like a lossy “basis” for text patterns  
+- Mini example (why tokenization surprises you)
+  - “hello world” might be **2 tokens** (e.g., `hello`, `␠world`)
+  - Extra spaces / casing ⇒ different tokens ⇒ different behavior
+
+- 🚨 Practical consequences
+  - **Spelling/counting** often fails because model “sees” token chunks, not letters
+  - **Weird boundary effects**: emojis, punctuation, whitespace matter
+  - **Compression**: tokens are like a lossy “basis” for text patterns
 
 - Table: tokenizer design knobs  
   | Knob | Push ↑ | Push ↓ | Side effects |
@@ -95,29 +100,31 @@
   | Multilingual coverage | non-English skill | English depth | more fragmentation per language |
   | Byte/char-level | robust to new words | slower | longer context usage |
 
-- ASCII mental model: token tape  
+- ASCII mental model: token tape
   ```text
   [t1][t2][t3][t4]...[tN]   where ti are IDs, not “letters”
           ↑ context window (max length) ↑
   ```
 
-## 🎯 3) Pre-training objective: next-token prediction  
-- Training sample  
-  - Pick a window of tokens `t_{i..i+L}` (L ≤ max context)  
-  - Predict `t_{i+L+1}`  
+## 🎯 3) Pre-training objective: next-token prediction
 
-- Model output  
-  - Logits over vocab `V` → softmax → probabilities  
+- Training sample
+  - Pick a window of tokens `t_{i..i+L}` (L ≤ max context)
+  - Predict `t_{i+L+1}`
 
-- Loss (cross-entropy)  
-  - $L(\theta)= -\sum_{k}\log p_\theta(t_{k}\mid t_{<k})$  
-  - Perplexity: $PP = \exp\left(\frac{L}{N}\right)$  
+- Model output
+  - Logits over vocab `V` → softmax → probabilities
 
-- 🔧 Optimization loop (gradient descent family)  
-  - init θ random → outputs random  
-  - each step: compute gradients → update θ → loss should trend down  
+- Loss (cross-entropy)
+  - $L(\theta)= -\sum_{k}\log p_\theta(t_{k}\mid t_{<k})$
+  - Perplexity: $PP = \exp\left(\frac{L}{N}\right)$
 
-- Vega-Lite: toy “loss vs steps” shape (illustrative)  
+- 🔧 Optimization loop (gradient descent family)
+  - init θ random → outputs random
+  - each step: compute gradients → update θ → loss should trend down
+
+- Vega-Lite: toy “loss vs steps” shape (illustrative)
+
   ```vega-lite
   {
     "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
@@ -134,7 +141,7 @@
   }
   ```
 
-- Diagram: pretraining loop  
+- Diagram: pretraining loop
   ```mermaid
   flowchart LR
     START["`START\nSample token window`"] --> C["`Context tokens\nt_{i..i+L}`"]
@@ -145,20 +152,22 @@
     GD --> END["`END\nrepeat for many steps`"]
   ```
 
-## 🧠 4) Transformer internals (what’s inside the box)  
-- What it is  
-  - A **parameterized function** `f_θ` mapping token IDs → next-token distribution  
-  - **Stateless** across calls; “memory” only via context tokens  
+## 🧠 4) Transformer internals (what’s inside the box)
 
-- Main blocks (high-level)  
-  - Embedding: token ID → vector  
-  - Repeated layers:  
-    - self-attention (mix info across positions)  
-    - MLP (nonlinear transformation)  
-    - residual + layernorm (stability)  
-  - Output projection: hidden → vocab logits  
+- What it is
+  - A **parameterized function** `f_θ` mapping token IDs → next-token distribution
+  - **Stateless** across calls; “memory” only via context tokens
 
-- Graphviz DOT: skeleton Transformer  
+- Main blocks (high-level)
+  - Embedding: token ID → vector
+  - Repeated layers:
+    - self-attention (mix info across positions)
+    - MLP (nonlinear transformation)
+    - residual + layernorm (stability)
+  - Output projection: hidden → vocab logits
+
+- Graphviz DOT: skeleton Transformer
+
   ```dot
   digraph G {
     rankdir=LR;
@@ -173,22 +182,23 @@
   }
   ```
 
-- Key scaling knobs  
-  - Params (billions→trillions) ↑ ⇒ capacity ↑  
-  - Context length ↑ ⇒ more “working memory”, but attention cost ↑ with length  
-  - Data tokens ↑ ⇒ better generalization until saturation  
+- Key scaling knobs
+  - Params (billions→trillions) ↑ ⇒ capacity ↑
+  - Context length ↑ ⇒ more “working memory”, but attention cost ↑ with length
+  - Data tokens ↑ ⇒ better generalization until saturation
 
-## 🎲 5) Inference: “generation = repeated sampling”  
-- Autoregressive loop  
-  - Given prompt tokens `t_{1..n}`  
-  - For step k: compute `p(t_{n+k} | t_{≤n+k-1})`, choose a token, append  
-  - Stop: EOS token / stop string / max tokens  
+## 🎲 5) Inference: “generation = repeated sampling”
 
-- Stochasticity  
-  - Sampling ≠ deterministic; same prompt can yield different outputs  
-  - Control knobs: temperature, top-k/top-p, repetition penalties, etc.  
+- Autoregressive loop
+  - Given prompt tokens `t_{1..n}`
+  - For step k: compute `p(t_{n+k} | t_{≤n+k-1})`, choose a token, append
+  - Stop: EOS token / stop string / max tokens
 
-- WaveDrom: token-by-token generation timeline (conceptual)  
+- Stochasticity
+  - Sampling ≠ deterministic; same prompt can yield different outputs
+  - Control knobs: temperature, top-k/top-p, repetition penalties, etc.
+
+- WaveDrom: token-by-token generation timeline (conceptual)
   ```wavedrom
   {
     "signal": [
@@ -201,18 +211,19 @@
   }
   ```
 
-## 🗃️ 6) Base model vs Assistant vs “Reasoning model”  
-- **Base model** 🧩  
-  - Learns web-text statistics; great autocomplete; can regurgitate  
-  - Not inherently “helpful Q&A” unless prompted into that format  
+## 🗃️ 6) Base model vs Assistant vs “Reasoning model”
 
-- **Assistant / instruct model** 🤝  
-  - Fine-tuned on conversations; follows instructions; safer/refusal behaviors  
-  - Still fundamentally next-token prediction, just on chat-style data  
+- **Base model** 🧩
+  - Learns web-text statistics; great autocomplete; can regurgitate
+  - Not inherently “helpful Q&A” unless prompted into that format
 
-- **Reasoning model** 🧠🔁  
-  - RL-trained on verifiable tasks often yields longer internal reasoning traces  
-  - User may see summaries, not full internal traces (platform-dependent)  
+- **Assistant / instruct model** 🤝
+  - Fine-tuned on conversations; follows instructions; safer/refusal behaviors
+  - Still fundamentally next-token prediction, just on chat-style data
+
+- **Reasoning model** 🧠🔁
+  - RL-trained on verifiable tasks often yields longer internal reasoning traces
+  - User may see summaries, not full internal traces (platform-dependent)
 
 - Table: behavior snapshot  
   | Model type | Training signal | Typical output | Failure flavor |
@@ -221,23 +232,24 @@
   | Instruct (SFT) | imitation of ideal chat responses | helpful answers | confident wrong answers (“hallucinations”) |
   | RL reasoning | verifiable reward (math/code) | more self-checking | still wrong; may overthink; cost/latency |
 
-## 🧑‍🏫 7) Post-training (SFT): turning base → assistant  
-- Core move  
-  - Swap dataset: **internet docs → conversations**  
-  - Continue training: same math, different data distribution  
+## 🧑‍🏫 7) Post-training (SFT): turning base → assistant
 
-- Conversation data ingredients  
-  - Multi-turn dialogues: user ↔ assistant  
-  - Labeling guidelines: “helpful / truthful / harmless”  
-  - Refusal examples: safe completion patterns  
-  - Specialized domains: code, math, medicine (often with expert labelers)  
-  - Increasingly: synthetic generation + human editing/filters  
+- Core move
+  - Swap dataset: **internet docs → conversations**
+  - Continue training: same math, different data distribution
 
-- Protocol encoding idea (model sees tokens, not “roles”)  
-  - Insert special tokens/markers: role boundaries, separators, system instruction  
-  - Reality: formatting differs across model families  
+- Conversation data ingredients
+  - Multi-turn dialogues: user ↔ assistant
+  - Labeling guidelines: “helpful / truthful / harmless”
+  - Refusal examples: safe completion patterns
+  - Specialized domains: code, math, medicine (often with expert labelers)
+  - Increasingly: synthetic generation + human editing/filters
 
-- Mermaid: conversation serialization idea  
+- Protocol encoding idea (model sees tokens, not “roles”)
+  - Insert special tokens/markers: role boundaries, separators, system instruction
+  - Reality: formatting differs across model families
+
+- Mermaid: conversation serialization idea
   ```mermaid
   flowchart LR
     START["`START\nConversation object`"] --> SER["`Serialize w/ markers\n(system/user/assistant)\n→ 1D token sequence`"]
@@ -245,21 +257,22 @@
     TRAIN --> END["`END\nAssistant-style continuation`"]
   ```
 
-## 🧨 8) Hallucinations: why they happen + why they feel “confident”  
-- Root cause (distributional)  
-  - Training examples often map “Q: who is X?” → confident answer  
-  - Model learns **style** of answering + priors, not “truth oracle”  
-  - When uncertain, it still emits the most likely continuation → plausible fiction  
+## 🧨 8) Hallucinations: why they happen + why they feel “confident”
 
-- 🔧 Mitigation A: teach “I don’t know”  
-  - Add training examples where the correct behavior is explicit uncertainty  
-  - Needs: identify knowledge boundary (probe model; compare vs ground truth)  
+- Root cause (distributional)
+  - Training examples often map “Q: who is X?” → confident answer
+  - Model learns **style** of answering + priors, not “truth oracle”
+  - When uncertain, it still emits the most likely continuation → plausible fiction
 
-- 🔧 Mitigation B: tools/retrieval  
-  - If uncertain or freshness needed: search / RAG / database lookup  
-  - Inject retrieved text into context; answer grounded in that context  
+- 🔧 Mitigation A: teach “I don’t know”
+  - Add training examples where the correct behavior is explicit uncertainty
+  - Needs: identify knowledge boundary (probe model; compare vs ground truth)
 
-- Diagram: hallucination loop + exit ramps  
+- 🔧 Mitigation B: tools/retrieval
+  - If uncertain or freshness needed: search / RAG / database lookup
+  - Inject retrieved text into context; answer grounded in that context
+
+- Diagram: hallucination loop + exit ramps
   ```mermaid
   flowchart LR
     START["`START\nUser asks factual Q`"] --> M["`Model tries recall\n(weights = vague memory)`"]
@@ -274,17 +287,19 @@
     A2 --> END
   ```
 
-## 🧰 9) Tools: “pause generation, execute, inject result”  
-- Mechanism  
-  - Model emits a **tool-call** token pattern  
-  - Orchestrator intercepts, runs tool, inserts tool output as new context tokens  
-  - Model continues generation with fresh context (“working memory”)  
+## 🧰 9) Tools: “pause generation, execute, inject result”
 
-- 🧠 Memory mental model  
-  - **Weights θ** = long-term, lossy, stale “recollection”  
-  - **Context window** = short-term, precise “working memory”  
+- Mechanism
+  - Model emits a **tool-call** token pattern
+  - Orchestrator intercepts, runs tool, inserts tool output as new context tokens
+  - Model continues generation with fresh context (“working memory”)
 
-- Mermaid: tool-use control loop (with escape-demo label)  
+- 🧠 Memory mental model
+  - **Weights θ** = long-term, lossy, stale “recollection”
+  - **Context window** = short-term, precise “working memory”
+
+- Mermaid: tool-use control loop (with escape-demo label)
+
   ```mermaid
   flowchart LR
     START["`START\nNeed fresh fact`"] --> GEN["`Model emits tool call\nsearch_start ... search_end`"]
@@ -296,50 +311,53 @@
     DEMO["`Status#colon;#32;#34;Processing#32;#35;1#34;#32;#40;Update#32;Required#41;\n(hash-entity escape demo)`"] --- RUN
   ```
 
-- Use-cases cheat sheet  
-  - 🔍 Search/RAG: up-to-date facts, citations, domain docs  
-  - 🧮 Code tool: arithmetic, counting, regex, parsing, data transforms  
-  - 📦 DB/warehouse: exact joins/aggregations (where available)  
-  - 🕹️ UI automation: actions (risky; needs guardrails)  
+- Use-cases cheat sheet
+  - 🔍 Search/RAG: up-to-date facts, citations, domain docs
+  - 🧮 Code tool: arithmetic, counting, regex, parsing, data transforms
+  - 📦 DB/warehouse: exact joins/aggregations (where available)
+  - 🕹️ UI automation: actions (risky; needs guardrails)
 
-## 🧠🪙 10) “Models need tokens to think” (compute-per-token constraint)  
-- Key intuition  
-  - Each new token is produced after a **finite forward-pass compute**  
-  - Big leaps inside 1 token are unreliable; reasoning wants many small steps  
+## 🧠🪙 10) “Models need tokens to think” (compute-per-token constraint)
 
-- Labeling implication  
-  - ❌ Bad training example: “Answer: 3. Explanation: …”  
-    - Trains “guess answer fast” + post-hoc rationalization  
-  - ✅ Better: step-by-step, intermediate results before final answer  
+- Key intuition
+  - Each new token is produced after a **finite forward-pass compute**
+  - Big leaps inside 1 token are unreliable; reasoning wants many small steps
 
-- Practical symptoms  
-  - Counting/character indexing brittle  
-  - Tokenization hides letters; model guesses at “string tasks”  
-  - Fix: force **tool use** (code) for exact operations  
+- Labeling implication
+  - ❌ Bad training example: “Answer: 3. Explanation: …”
+    - Trains “guess answer fast” + post-hoc rationalization
+  - ✅ Better: step-by-step, intermediate results before final answer
 
-- Micro math (attention cost shape; illustrative)  
-  - For sequence length `L` and hidden width `d`, attention work scales roughly like $O(L^2 \cdot d)$  
-  - Context is precious: wasting tokens can hurt; too few tokens can break reasoning  
+- Practical symptoms
+  - Counting/character indexing brittle
+  - Tokenization hides letters; model guesses at “string tasks”
+  - Fix: force **tool use** (code) for exact operations
 
-- ASCII: “small steps beat big jumps”  
+- Micro math (attention cost shape; illustrative)
+  - For sequence length `L` and hidden width `d`, attention work scales roughly like $O(L^2 \cdot d)$
+  - Context is precious: wasting tokens can hurt; too few tokens can break reasoning
+
+- ASCII: “small steps beat big jumps”
   ```text
   BAD:  prompt → [one huge leap] → answer
   GOOD: prompt → step1 → step2 → step3 → answer
   ```
 
-## 🏋️ 11) Reinforcement Learning (RL) for reasoning (verifiable domains)  
-- Setup (practice problems analogy)  
-  - You have prompts + **checkable** answers (math/code/unit tests)  
-  - Generate many candidate solutions (“rollouts”)  
-  - Score automatically (exact match / verifier / tests)  
-  - Update model to increase probability of high-reward traces  
+## 🏋️ 11) Reinforcement Learning (RL) for reasoning (verifiable domains)
 
-- Emergent behavior (why “reasoning models” look different)  
-  - Longer traces; self-correction (“wait… recheck”)  
-  - Multiple approaches; backtracking; sanity checks  
-  - Often improves accuracy on hard verifiable tasks  
+- Setup (practice problems analogy)
+  - You have prompts + **checkable** answers (math/code/unit tests)
+  - Generate many candidate solutions (“rollouts”)
+  - Score automatically (exact match / verifier / tests)
+  - Update model to increase probability of high-reward traces
 
-- Mermaid: RL loop  
+- Emergent behavior (why “reasoning models” look different)
+  - Longer traces; self-correction (“wait… recheck”)
+  - Multiple approaches; backtracking; sanity checks
+  - Often improves accuracy on hard verifiable tasks
+
+- Mermaid: RL loop
+
   ```mermaid
   flowchart LR
     START["`START\nPrompt + verifier`"] --> ROL["`Generate K rollouts\n(stochastic sampling)`"]
@@ -348,7 +366,8 @@
     UPD --> END["`END\nrepeat many iterations`"]
   ```
 
-- Vega-Lite: illustrative “accuracy vs RL steps”  
+- Vega-Lite: illustrative “accuracy vs RL steps”
+
   ```vega-lite
   {
     "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
@@ -365,23 +384,25 @@
   }
   ```
 
-- ⚠️ Boundary  
-  - RL is easiest where reward is **hard to game** (tests, exact answers)  
-  - Harder where “good” is subjective  
+- ⚠️ Boundary
+  - RL is easiest where reward is **hard to game** (tests, exact answers)
+  - Harder where “good” is subjective
 
-## 🧑‍⚖️ 12) RLHF / Preference Optimization (unverifiable domains)  
-- Problem  
-  - For humor, style, summaries, “good” isn’t checkable automatically  
-- Trick  
-  - Collect human **pairwise preferences** (A better than B)  
-  - Train **reward model** to predict preferences  
-  - Do RL (or related optimization) against reward model  
+## 🧑‍⚖️ 12) RLHF / Preference Optimization (unverifiable domains)
 
-- Reward hacking risk  
-  - Reward model is itself a learned system ⇒ exploitable  
-  - RL can discover weird strings that maximize reward but are nonsense  
+- Problem
+  - For humor, style, summaries, “good” isn’t checkable automatically
+- Trick
+  - Collect human **pairwise preferences** (A better than B)
+  - Train **reward model** to predict preferences
+  - Do RL (or related optimization) against reward model
 
-- Mermaid: RLHF pipeline  
+- Reward hacking risk
+  - Reward model is itself a learned system ⇒ exploitable
+  - RL can discover weird strings that maximize reward but are nonsense
+
+- Mermaid: RLHF pipeline
+
   ```mermaid
   flowchart LR
     START["`START\nPrompt`"] --> GEN["`Generate candidates\nA,B,C,...`"]
@@ -399,76 +420,80 @@
   | Scale | can run long | often must stop early / monitor |
   | Best for | math, code, logic | style, helpfulness, harmlessness |
 
-## 🧭 13) Practical “use the model sanely” playbook  
-- 🔍 Factual Qs  
-  - Provide sources / paste documents when possible  
-  - Ask for uncertainty + citations + “what would change your mind?”  
-  - If stakes high: require retrieval/tooling + cross-check sources  
+## 🧭 13) Practical “use the model sanely” playbook
 
-- 🧮 Math / counting / string-manip tasks  
-  - Ask for code execution; verify with tests  
-  - Prefer: “show intermediate results” + “final boxed answer”  
-  - If model must do mental math: keep numbers small; still verify  
+- 🔍 Factual Qs
+  - Provide sources / paste documents when possible
+  - Ask for uncertainty + citations + “what would change your mind?”
+  - If stakes high: require retrieval/tooling + cross-check sources
 
-- 🧠 Long reasoning tasks  
-  - Give more context; break into subproblems  
-  - Ask for *two independent solution paths* + consistency check  
-  - Use verifier: unit tests, constraints, invariants  
+- 🧮 Math / counting / string-manip tasks
+  - Ask for code execution; verify with tests
+  - Prefer: “show intermediate results” + “final boxed answer”
+  - If model must do mental math: keep numbers small; still verify
 
-- 🎨 Creative tasks  
-  - Generate N variants; rank; iterate  
-  - Use constraints: tone, length, structure, examples  
+- 🧠 Long reasoning tasks
+  - Give more context; break into subproblems
+  - Ask for _two independent solution paths_ + consistency check
+  - Use verifier: unit tests, constraints, invariants
 
-- ✅ Checklist (fast)  
-  - [ ] Is this **fresh** info? → use retrieval/search  
-  - [ ] Is this **exact** computation? → use code tool  
-  - [ ] Is this **high-stakes**? → require sources + verify externally  
-  - [ ] Is this **ambiguous**? → ask clarifying questions or state assumptions  
-  - [ ] Do I need **multiple candidates**? → sample N + compare  
+- 🎨 Creative tasks
+  - Generate N variants; rank; iterate
+  - Use constraints: tone, length, structure, examples
 
-## 🔮 14) “What’s next” directions (conceptual)  
-- 🌈 Multimodal  
-  - Images/audio become token streams too (patches / spectrogram slices)  
-- 🤖 Agents  
-  - Longer-horizon task execution; human supervision ratio becomes key  
-- 🧠 Memory beyond context  
-  - Context window is finite; pressure for retrieval + compression + external memory  
-- 🧪 Test-time adaptation  
-  - More systems will do “learn during use” via tools, retrieval, and maybe controlled updates  
+- ✅ Checklist (fast)
+  - [ ] Is this **fresh** info? → use retrieval/search
+  - [ ] Is this **exact** computation? → use code tool
+  - [ ] Is this **high-stakes**? → require sources + verify externally
+  - [ ] Is this **ambiguous**? → ask clarifying questions or state assumptions
+  - [ ] Do I need **multiple candidates**? → sample N + compare
 
-## 🔗 15) Self-verify / references (starter set)  
-- Hugging Face “FineWeb” dataset + docs  
-  - https://huggingface.co/datasets/HuggingFaceFW/fineweb  
-- Common Crawl  
-  - https://commoncrawl.org/  
-- Tokenization playgrounds (vary)  
-  - https://platform.openai.com/tokenizer  
-  - https://tiktokenizer.vercel.app/  
-- GPT-2 paper + repo  
-  - https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf  
-  - https://github.com/openai/gpt-2  
-- InstructGPT paper  
-  - https://arxiv.org/abs/2203.02155  
-- OpenAssistant dataset  
-  - https://huggingface.co/datasets/OpenAssistant/oasst1  
-- Llama 3 / 3.1 (Meta)  
-  - https://ai.meta.com/llama/  
-- DeepSeek R1 (reasoning/RL lineage)  
-  - https://github.com/deepseek-ai  
-- AlphaGo (RL archetype)  
-  - https://www.nature.com/articles/nature16961  
-- LMSYS Chatbot Arena (comparative evals)  
-  - https://lmarena.ai/  
+## 🔮 14) “What’s next” directions (conceptual)
 
-## 🧩 Appendix: Mermaid hash-entity cheat sheet (minimal)  
-- Why: Mermaid wants `#`-entities (not `&`-entities) in some contexts  
-- Common escapes  
-  - `:` → `#colon;`  
-  - space → `#32;`  
-  - `"` → `#34;`  
-  - `#` → `#35;`  
-  - `(` → `#40;`  
-  - `)` → `#41;`  
-- Example (raw → escaped)  
-  - Raw: `Status: "Processing #1" (Update Required)`  
-  - Escaped: `Status#colon;#32;#34;Processing#32;#35;1#34;#32;#40;Update#32;Required#41;`  
+- 🌈 Multimodal
+  - Images/audio become token streams too (patches / spectrogram slices)
+- 🤖 Agents
+  - Longer-horizon task execution; human supervision ratio becomes key
+- 🧠 Memory beyond context
+  - Context window is finite; pressure for retrieval + compression + external memory
+- 🧪 Test-time adaptation
+  - More systems will do “learn during use” via tools, retrieval, and maybe controlled updates
+
+## 🔗 15) Self-verify / references (starter set)
+
+- Hugging Face “FineWeb” dataset + docs
+  - https://huggingface.co/datasets/HuggingFaceFW/fineweb
+- Common Crawl
+  - https://commoncrawl.org/
+- Tokenization playgrounds (vary)
+  - https://platform.openai.com/tokenizer
+  - https://tiktokenizer.vercel.app/
+- GPT-2 paper + repo
+  - https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf
+  - https://github.com/openai/gpt-2
+- InstructGPT paper
+  - https://arxiv.org/abs/2203.02155
+- OpenAssistant dataset
+  - https://huggingface.co/datasets/OpenAssistant/oasst1
+- Llama 3 / 3.1 (Meta)
+  - https://ai.meta.com/llama/
+- DeepSeek R1 (reasoning/RL lineage)
+  - https://github.com/deepseek-ai
+- AlphaGo (RL archetype)
+  - https://www.nature.com/articles/nature16961
+- LMSYS Chatbot Arena (comparative evals)
+  - https://lmarena.ai/
+
+## 🧩 Appendix: Mermaid hash-entity cheat sheet (minimal)
+
+- Why: Mermaid wants `#`-entities (not `&`-entities) in some contexts
+- Common escapes
+  - `:` → `#colon;`
+  - space → `#32;`
+  - `"` → `#34;`
+  - `#` → `#35;`
+  - `(` → `#40;`
+  - `)` → `#41;`
+- Example (raw → escaped)
+  - Raw: `Status: "Processing #1" (Update Required)`
+  - Escaped: `Status#colon;#32;#34;Processing#32;#35;1#34;#32;#40;Update#32;Required#41;`

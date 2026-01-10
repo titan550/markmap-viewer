@@ -28,7 +28,10 @@ function stripFirstDirective(src: string, re: RegExp): { value: string | null; b
 export const dotRenderer: Renderer = {
   name: "DOT",
   async render(src) {
-    const { value: engine, body } = stripFirstDirective(src, /^\s*(?:\/\/|#)\s*engine:\s*([A-Za-z0-9_-]+)/i);
+    const { value: engine, body } = stripFirstDirective(
+      src,
+      /^\s*(?:\/\/|#)\s*engine:\s*([A-Za-z0-9_-]+)/i
+    );
     const viz = await getViz();
     const svgEl = viz.renderSVGElement(body, engine ? { engine } : undefined);
     const svg = new XMLSerializer().serializeToString(svgEl);

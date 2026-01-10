@@ -16,7 +16,7 @@ export type MarkmapToolbar = {
 };
 
 export type MarkmapOptions = {
-  maxWidth?: number;  // Max width of node content in pixels; 0 = no limit
+  maxWidth?: number; // Max width of node content in pixels; 0 = no limit
 };
 
 export type MarkmapAPI = {

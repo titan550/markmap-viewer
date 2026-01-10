@@ -35,5 +35,4 @@ console.log(fib(10));
     expect(out).toContain("\n  ```js");
     expect(out).toContain("\n  ````");
   });
-
 });

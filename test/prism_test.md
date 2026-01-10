@@ -1,6 +1,7 @@
 # Prism Syntax Highlighting Test
 
 ## Python Code
+
 ```python
 def fibonacci(n):
     """Calculate the nth Fibonacci number."""
@@ -14,6 +15,7 @@ print(f"Fibonacci(10) = {fibonacci(10)}")
 ```
 
 ## TypeScript Code
+
 ```typescript
 interface User {
   name: string;
@@ -29,7 +31,7 @@ class UserManager {
   }
 
   findByName(name: string): User | undefined {
-    return this.users.find(u => u.name === name);
+    return this.users.find((u) => u.name === name);
   }
 }
 
@@ -38,6 +40,7 @@ manager.addUser({ name: "Alice", age: 30 });
 ```
 
 ## JavaScript (using alias)
+
 ```js
 const fetchData = async (url) => {
   try {
@@ -45,16 +48,17 @@ const fetchData = async (url) => {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error fetching data:', error);
+    console.error("Error fetching data:", error);
     return null;
   }
 };
 
 // Arrow function example
-const double = x => x * 2;
+const double = (x) => x * 2;
 ```
 
 ## SQL Query
+
 ```sql
 -- Complex SQL query with joins
 SELECT
@@ -74,6 +78,7 @@ LIMIT 10;
 ```
 
 ## Bash Script (using alias)
+
 ```sh
 #!/bin/bash
 # Backup script
@@ -95,9 +100,10 @@ fi
 ```
 
 ## YAML Configuration
+
 ```yml
 # Docker Compose configuration
-version: '3.8'
+version: "3.8"
 
 services:
   web:
@@ -128,6 +134,7 @@ networks:
 ```
 
 ## Rust Code
+
 ```rust
 // Rust example (not an alias)
 use std::collections::HashMap;

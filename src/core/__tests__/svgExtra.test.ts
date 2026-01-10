@@ -12,20 +12,20 @@ describe("svg helpers", () => {
   it("appends style to existing style tag", () => {
     const svg = "<svg><style>.a{}</style></svg>";
     const out = injectSvgStyle(svg, ".b{}");
-    expect(out).toContain(".a{}" );
-    expect(out).toContain(".b{}" );
+    expect(out).toContain(".a{}");
+    expect(out).toContain(".b{}");
   });
 
   it("sets pixel size on svg", () => {
-    const svg = "<svg width=\"10\" height=\"10\"></svg>";
+    const svg = '<svg width="10" height="10"></svg>';
     const out = setSvgPixelSize(svg, 120, 80);
-    expect(out).toContain("width=\"120\"");
-    expect(out).toContain("height=\"80\"");
-    expect(out).toContain("style=\"width:120px;height:80px;\"");
+    expect(out).toContain('width="120"');
+    expect(out).toContain('height="80"');
+    expect(out).toContain('style="width:120px;height:80px;"');
   });
 
   it("falls back to width/height when no viewBox", () => {
-    const svg = "<svg width=\"200\" height=\"90\"></svg>";
+    const svg = '<svg width="200" height="90"></svg>';
     expect(parseSvgSize(svg)).toEqual({ width: 200, height: 90 });
   });
 
@@ -35,7 +35,7 @@ describe("svg helpers", () => {
   });
 
   it("parses size units for svg width/height", () => {
-    const svg = "<svg width=\"2cm\" height=\"10mm\"></svg>";
+    const svg = '<svg width="2cm" height="10mm"></svg>';
     const size = parseSvgSizeWithUnit(svg, 16);
     expect(size?.width).toBeGreaterThan(70);
     expect(size?.height).toBeGreaterThan(30);

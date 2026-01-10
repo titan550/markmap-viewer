@@ -6,9 +6,9 @@ We target Safari/WebKit stability. The core issue is long‑standing bugs in how
 
 We render Mermaid blocks to SVG images before feeding Markdown to Markmap. That avoids nested SVG/HTML inside Markmap nodes, but it does **not** eliminate foreignObject risks in two places:
 
-1) **Mermaid can emit `<foreignObject>` inside its own SVG** when `htmlLabels: true`. Safari can mis‑position these, so labels render at `(0,0)` or disappear. We therefore set `htmlLabels: false` (and `flowchart.htmlLabels: false`).
+1. **Mermaid can emit `<foreignObject>` inside its own SVG** when `htmlLabels: true`. Safari can mis‑position these, so labels render at `(0,0)` or disappear. We therefore set `htmlLabels: false` (and `flowchart.htmlLabels: false`).
 
-2) **Markmap uses `<foreignObject>` for node labels**. Any HTML inside labels (math, inline HTML, embedded images) is still rendered via foreignObject. We minimize HTML by pre‑rendering complex content to images and by keeping labels as plain text when possible.
+2. **Markmap uses `<foreignObject>` for node labels**. Any HTML inside labels (math, inline HTML, embedded images) is still rendered via foreignObject. We minimize HTML by pre‑rendering complex content to images and by keeping labels as plain text when possible.
 
 ## Design choices
 

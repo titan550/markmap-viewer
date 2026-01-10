@@ -1,26 +1,33 @@
 # Markmap + Mermaid Stress Test
 
 ## Baseline sanity
+
 - Plain text node
 - Inline code `x = 1`
-- **Bold** and *italic*
+- **Bold** and _italic_
 - Link: https://example.com
 
 ## Mixed content density
+
 ### Long paragraph (forces wrapping)
+
 This is a deliberately long sentence intended to wrap across multiple lines inside a single Markmap node so we can observe foreignObject sizing changes and post-fit relayout stability after Mermaid injects SVG with labels, arrows, and shapes.
 
 ### Nested lists + code
+
 - Level 1
   - Level 2
     - Level 3
       - Level 4 (deep indent)
         - Bullet with a short note
 - Fenced code (non-mermaid)
+
 ```js
-function fib(n){ return n<2?n:fib(n-1)+fib(n-2); }
+function fib(n) {
+  return n < 2 ? n : fib(n - 1) + fib(n - 2);
+}
 console.log(fib(10));
-````
+```
 
 ## Mermaid: small graph
 
@@ -204,7 +211,7 @@ erDiagram
 
 - Inline math: $\to$ $O(1)$, $O(N)$, $x^{1/2}$, $\frac{a}{b}$, $\alpha + \beta$.
 - Mixed text + math: Speed is $O(n \log n)$ and memory is $O(n)$.
-- Inline code: ``literal $x$`` should stay code, not math.
+- Inline code: `literal $x$` should stay code, not math.
 
 $$
 \int_{0}^{1} x^2 \\, dx = \\frac{1}{3}
@@ -218,15 +225,11 @@ $$
 
 #### Branch A
 
-* A1
-
-  * A2
-
-    * A3
-
-      * A4
-
-        * A5
+- A1
+  - A2
+    - A3
+      - A4
+        - A5
 
 ```mermaid
 graph LR
@@ -235,15 +238,11 @@ graph LR
 
 #### Branch B
 
-* B1
-
-  * B2
-
-    * B3
-
-      * B4
-
-        * B5
+- B1
+  - B2
+    - B3
+      - B4
+        - B5
 
 ```mermaid
 graph LR
@@ -326,4 +325,4 @@ flowchart LR
 
 ## Footer
 
-* If this renders without overlaps after the Mermaid pass + relayout, the orchestration is working.
+- If this renders without overlaps after the Mermaid pass + relayout, the orchestration is working.

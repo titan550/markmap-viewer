@@ -12,10 +12,7 @@ export function renderInlineMarkdown(
   return parts
     .map((part) => {
       if (/^<img/i.test(part)) return part;
-      return part
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
+      return part.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     })
     .join("");
 }
@@ -23,7 +20,8 @@ export function renderInlineMarkdown(
 export function shouldRenderInlineMath(expr: string): boolean {
   const trimmed = (expr || "").trim();
   if (!trimmed) return false;
-  const currencyLike = /^\d[\d,]*(?:\.\d+)?(?:\s*(?:k|m|b|bn|mm|t))?(?:\s*(?:usd|eur|gbp|cad|aud|jpy|inr))?(?:\s*(?:to|–|-)\s*\d[\d,]*(?:\.\d+)?(?:\s*(?:k|m|b|bn|mm|t))?(?:\s*(?:usd|eur|gbp|cad|aud|jpy|inr))?)?$/i;
+  const currencyLike =
+    /^\d[\d,]*(?:\.\d+)?(?:\s*(?:k|m|b|bn|mm|t))?(?:\s*(?:usd|eur|gbp|cad|aud|jpy|inr))?(?:\s*(?:to|–|-)\s*\d[\d,]*(?:\.\d+)?(?:\s*(?:k|m|b|bn|mm|t))?(?:\s*(?:usd|eur|gbp|cad|aud|jpy|inr))?)?$/i;
   if (currencyLike.test(trimmed)) return false;
   if (/[\\^_{}=]/.test(trimmed)) return true;
   return /[A-Za-z]/.test(trimmed);
@@ -60,7 +58,10 @@ export async function preRenderMathToImages(
 
   function readLine(pos: number): { text: string; end: number } {
     const end = mdText.indexOf("\n", pos);
-    return { text: end === -1 ? mdText.slice(pos) : mdText.slice(pos, end), end: end === -1 ? mdText.length : end + 1 };
+    return {
+      text: end === -1 ? mdText.slice(pos) : mdText.slice(pos, end),
+      end: end === -1 ? mdText.length : end + 1,
+    };
   }
 
   function countTickRun(pos: number): number {
@@ -101,8 +102,12 @@ export async function preRenderMathToImages(
         return img;
       }
       const useListCtx = indent.length > 0;
-      const listCtx = useListCtx ? getListContext(mdText, matchIndex) : { isList: false, indent: "", childIndent: "" };
-      const safeIndent = listCtx.isList ? listCtx.childIndent : computeSafeIndent(indent, mdText, matchIndex);
+      const listCtx = useListCtx
+        ? getListContext(mdText, matchIndex)
+        : { isList: false, indent: "", childIndent: "" };
+      const safeIndent = listCtx.isList
+        ? listCtx.childIndent
+        : computeSafeIndent(indent, mdText, matchIndex);
       if (listCtx.isList) {
         const inlineOut = appendInlineToLastListItem(out, img);
         if (inlineOut !== null) {
@@ -119,7 +124,10 @@ export async function preRenderMathToImages(
   function findClosingDollar(start: number, isDouble: boolean): number {
     const needle = isDouble ? "$$" : "$";
     for (let pos = start; pos < mdText.length; pos++) {
-      if (mdText[pos] === "\\") { pos += 1; continue; }
+      if (mdText[pos] === "\\") {
+        pos += 1;
+        continue;
+      }
       if (mdText.startsWith(needle, pos)) return pos;
     }
     return -1;
@@ -141,7 +149,10 @@ export async function preRenderMathToImages(
           i = lineInfo.end;
           continue;
         }
-      } else if (fenceMarkerChar && isFenceClosing(lineInfo.text, fenceMarkerChar, fenceMarkerLen)) {
+      } else if (
+        fenceMarkerChar &&
+        isFenceClosing(lineInfo.text, fenceMarkerChar, fenceMarkerLen)
+      ) {
         inFence = false;
         fenceMarkerChar = null;
         fenceMarkerLen = 0;

@@ -20,16 +20,16 @@ async function loadFixture(page) {
 test.describe("fixtures_core.md render", () => {
   test("renders diagrams and math", async ({ page }) => {
     await loadFixture(page);
-    await page.waitForFunction(() => {
-      const diagramImgs = document.querySelectorAll("img.diagram-img").length;
-      const mermaidImgs = document.querySelectorAll("img.mermaid-img").length;
-      const mathImgs = document.querySelectorAll("img.math-img").length;
-      return (
-        diagramImgs >= 10 &&
-        mermaidImgs >= 8 &&
-        mathImgs >= 5
-      );
-    }, null, { timeout: 25000 });
+    await page.waitForFunction(
+      () => {
+        const diagramImgs = document.querySelectorAll("img.diagram-img").length;
+        const mermaidImgs = document.querySelectorAll("img.mermaid-img").length;
+        const mathImgs = document.querySelectorAll("img.math-img").length;
+        return diagramImgs >= 10 && mermaidImgs >= 8 && mathImgs >= 5;
+      },
+      null,
+      { timeout: 25000 }
+    );
 
     const counts = await page.evaluate(() => ({
       diagramImgs: document.querySelectorAll("img.diagram-img").length,

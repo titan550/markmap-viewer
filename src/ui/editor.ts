@@ -169,7 +169,9 @@ export function setupEditor(deps: EditorDeps): EditorApi {
           "Cmd-G": "findNext",
           "Shift-Ctrl-G": "findPrev",
           "Shift-Cmd-G": "findPrev",
-          "Esc": () => { if (editorVisible) toggleEditor(false); },
+          Esc: () => {
+            if (editorVisible) toggleEditor(false);
+          },
         },
       });
 

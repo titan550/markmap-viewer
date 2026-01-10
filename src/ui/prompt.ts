@@ -25,7 +25,9 @@ export function setupPrompt(copyPromptBtn: HTMLButtonElement): void {
     const original = copyPromptBtn.textContent;
     const ok = await copyPromptToClipboard();
     copyPromptBtn.textContent = ok ? "Copied" : "Copy failed";
-    setTimeout(() => { copyPromptBtn.textContent = original || "Copy Prompt"; }, 1200);
+    setTimeout(() => {
+      copyPromptBtn.textContent = original || "Copy Prompt";
+    }, 1200);
   });
 }
 
