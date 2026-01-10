@@ -2,7 +2,7 @@ export function setupExampleButton(
   exampleBtn: HTMLButtonElement,
   pasteEl: HTMLTextAreaElement,
   onRender: (mdText: string) => void
-) {
+): void {
   exampleBtn.addEventListener("click", () => {
     const mdText = [
       "# Renderers Test",

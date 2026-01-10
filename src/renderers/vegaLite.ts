@@ -9,7 +9,7 @@ document.body.appendChild(vegaScratch);
 
 export const vegaLiteRenderer: Renderer = {
   name: "Vega-Lite",
-  render: async (src) => {
+  async render(src) {
     if (!window.vegaEmbed) throw new Error("Vega-Embed is not available");
     const parser = window.JSON5?.parse || JSON.parse;
     const spec = parser(src);

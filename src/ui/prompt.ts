@@ -1,6 +1,6 @@
 let promptCache: Promise<string> | null = null;
 
-async function loadPromptMd() {
+async function loadPromptMd(): Promise<string> {
   if (!promptCache) {
     const base = import.meta.env.BASE_URL || "/";
     promptCache = fetch(`${base}prompt.md`).then(async (res) => {
@@ -13,17 +13,14 @@ async function loadPromptMd() {
   return promptCache;
 }
 
-async function copyPromptToClipboard() {
-  try {
-    const promptMd = await loadPromptMd();
-    await navigator.clipboard.writeText(promptMd);
-    return true;
-  } catch {
-    return false;
-  }
+async function copyPromptToClipboard(): Promise<boolean> {
+  return loadPromptMd()
+    .then((promptMd) => navigator.clipboard.writeText(promptMd))
+    .then(() => true)
+    .catch(() => false);
 }
 
-export function setupPrompt(copyPromptBtn: HTMLButtonElement) {
+export function setupPrompt(copyPromptBtn: HTMLButtonElement): void {
   copyPromptBtn.addEventListener("click", async () => {
     const original = copyPromptBtn.textContent;
     const ok = await copyPromptToClipboard();

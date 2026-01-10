@@ -5,7 +5,7 @@ import type { Renderer } from "./types";
 let mermaidInitialized = false;
 let mermaidId = 0;
 
-function ensureMermaidInit() {
+function ensureMermaidInit(): void {
   if (mermaidInitialized) return;
   const mermaid = window.mermaid;
   if (!mermaid) throw new Error("Mermaid is not available");
@@ -25,9 +25,12 @@ function ensureMermaidInit() {
 
 export const mermaidRenderer: Renderer = {
   name: "Mermaid",
-  render: async (src) => {
+  async render(src) {
     ensureMermaidInit();
-    try { if (document.fonts?.ready) await document.fonts.ready; } catch { /* ignore font readiness errors */ }
+    const fontsReady = document.fonts?.ready;
+    if (fontsReady) {
+      await fontsReady.catch(() => undefined);
+    }
     const mermaid = window.mermaid;
     if (!mermaid?.render) throw new Error("Mermaid is not available");
     const isERDiagram = /^\s*erDiagram\b/m.test(src);

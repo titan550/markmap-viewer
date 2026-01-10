@@ -24,7 +24,7 @@ export function sanitizeMermaidLabel(raw: string, opts: MermaidSanitizeOptions =
   s = s.replace(/<br\s*\/?>/gi, "\n");
   s = s.replace(/\r\n?/g, "\n");
 
-  const decodeNamedEntity = (name: string) => {
+  function decodeNamedEntity(name: string): string | null {
     const map: Record<string, string> = {
       quot: '"',
       amp: "&",
@@ -35,19 +35,19 @@ export function sanitizeMermaidLabel(raw: string, opts: MermaidSanitizeOptions =
       colon: ":",
     };
     return map[name] ?? null;
-  };
+  }
 
-  const decodeNumericEntity = (num: string) => {
+  function decodeNumericEntity(num: string): string | null {
     const n = Number(num);
     if (!Number.isFinite(n) || n <= 0) return null;
     try { return String.fromCodePoint(n); } catch { return null; }
-  };
+  }
 
-  const decodeHexEntity = (hex: string) => {
+  function decodeHexEntity(hex: string): string | null {
     const n = parseInt(hex, 16);
     if (!Number.isFinite(n) || n <= 0) return null;
     try { return String.fromCodePoint(n); } catch { return null; }
-  };
+  }
 
   if (useMarkdownStrings || (!useMarkdownStrings && relaxed)) {
     s = s.replace(/#(\d{1,7});/g, (_, num) => decodeNumericEntity(num) ?? `#${num};`);
@@ -69,7 +69,7 @@ export function sanitizeMermaidLabel(raw: string, opts: MermaidSanitizeOptions =
 
   const entityRe = /^#(?:\d{1,7}|[A-Za-z][A-Za-z0-9]{1,31});/;
 
-  const encodeChunk = (chunk: string) => {
+  function encodeChunk(chunk: string): string {
     let out = "";
     for (let i = 0; i < chunk.length; ) {
       if (preserveExisting && chunk[i] === "#") {
@@ -116,7 +116,7 @@ export function sanitizeMermaidLabel(raw: string, opts: MermaidSanitizeOptions =
       i += step;
     }
     return out;
-  };
+  }
 
   return s.split("\n").map(encodeChunk).join(lineBreak);
 }
@@ -127,7 +127,10 @@ export type MermaidSourceSanitizeOptions = MermaidSanitizeOptions & {
   normalizeSpaceEntities?: boolean;
 };
 
-export function sanitizeMermaidSourceLabels(mermaidSource: string, opts: MermaidSourceSanitizeOptions = {}): string {
+export function sanitizeMermaidSourceLabels(
+  mermaidSource: string,
+  opts: MermaidSourceSanitizeOptions = {}
+): string {
   const {
     useMarkdownStrings = true,
     wrapEdgeLabels = true,
@@ -164,7 +167,7 @@ export function sanitizeMermaidSourceLabels(mermaidSource: string, opts: Mermaid
   let out = "";
   let i = 0;
 
-  const sanitizeWithMode = (inner: string, relaxedMode = preferPlainLabels) => {
+  function sanitizeWithMode(inner: string, relaxedMode = preferPlainLabels): string {
     const trimmed = String(inner || "");
     const isWrappedMarkdown =
       trimmed.startsWith("`") &&
@@ -180,9 +183,9 @@ export function sanitizeMermaidSourceLabels(mermaidSource: string, opts: Mermaid
     };
     const cleaned = sanitizeMermaidLabel(core, localOpts);
     return useMarkdown ? "`" + cleaned + "`" : cleaned;
-  };
+  }
 
-  const sanitizeColonLabel = (raw: string, quote: string) => {
+  function sanitizeColonLabel(raw: string, quote: string): string {
     const trimmed = String(raw || "").trim();
     const isWrappedMarkdown =
       trimmed.startsWith("`") &&
@@ -197,38 +200,38 @@ export function sanitizeMermaidSourceLabels(mermaidSource: string, opts: Mermaid
     if (quote === "\"") return cleaned.replace(/"/g, "#quot;");
     if (quote === "'") return cleaned.replace(/'/g, "#39;");
     return cleaned;
-  };
+  }
 
-  const sanitizeColonLabels = (srcText: string) => {
+  function sanitizeColonLabels(srcText: string): string {
     return srcText.replace(/:\s*(`([^`]*?)`|"([^"]*?)"|'([^']*?)'|([^\n]*))/g, (_full, _g1, bt, dq, sq, raw) => {
       const text = bt ?? dq ?? sq ?? raw ?? "";
       const quote = bt ? "`" : dq ? "\"" : sq ? "'" : "";
       const cleaned = sanitizeColonLabel(text.trim(), quote);
       return `: "${cleaned}"`;
     });
-  };
+  }
 
   if (isSequenceDiagram || isStateDiagram) {
     return sanitizeColonLabels(src);
   }
 
-  const isEdgeLabelStart = (pos: number) => {
+  function isEdgeLabelStart(pos: number): boolean {
     for (let j = pos - 1; j >= 0; j--) {
       const ch = src[j];
       if (ch === " " || ch === "\t") continue;
       return ch === "-" || ch === "=" || ch === "." || ch === ">";
     }
     return false;
-  };
+  }
 
-  const isLikelyNodeLabelStart = (pos: number) => {
+  function isLikelyNodeLabelStart(pos: number): boolean {
     for (let j = pos - 1; j >= 0; j--) {
       const ch = src[j];
       if (ch === " " || ch === "\t") continue;
       return /[\]A-Za-z0-9_})]/.test(ch);
     }
     return false;
-  };
+  }
 
   while (i < src.length) {
     let p: { open: string; close: string } | null = null;

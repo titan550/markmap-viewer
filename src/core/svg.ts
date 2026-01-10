@@ -25,7 +25,7 @@ export function parseSvgSizeWithUnit(svgText: string, basePx: number): { width: 
   const heightMatch = svgText.match(/height="([^"]+)"/i);
   if (!widthMatch || !heightMatch) return null;
 
-  const parseSize = (value: string) => {
+  function parseSize(value: string): number | null {
     const num = parseFloat(value);
     if (!Number.isFinite(num)) return null;
     const unit = String(value).replace(/[0-9.\s]/g, "").toLowerCase();
@@ -37,7 +37,7 @@ export function parseSvgSizeWithUnit(svgText: string, basePx: number): { width: 
     if (unit === "cm") return num * (96 / 2.54);
     if (unit === "mm") return num * (96 / 25.4);
     return null;
-  };
+  }
 
   const width = parseSize(widthMatch[1]);
   const height = parseSize(heightMatch[1]);

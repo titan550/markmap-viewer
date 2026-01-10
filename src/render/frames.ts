@@ -1,5 +1,11 @@
-export const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+export function nextFrame(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
+}
 
-export const nextFrames = async (n: number) => {
-  for (let i = 0; i < n; i++) await nextFrame();
-};
+export async function nextFrames(n: number): Promise<void> {
+  for (let i = 0; i < n; i += 1) {
+    await nextFrame();
+  }
+}

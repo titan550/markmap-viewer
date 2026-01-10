@@ -1,12 +1,12 @@
-import { appendInlineToLastListItem, computeSafeIndent, getListContext } from "../core/listContext";
 import { normalizeNewlines, scanFencedBlocks } from "../core/fences";
+import { appendInlineToLastListItem, computeSafeIndent, getListContext } from "../core/listContext";
 import { sanitizeSvgForXml } from "../core/svgSanitize";
-import { revokeBlobs } from "./blobs";
 import { dotRenderer } from "../renderers/dot";
 import { mermaidRenderer } from "../renderers/mermaid";
+import type { RenderResult, Renderer } from "../renderers/types";
 import { vegaLiteRenderer } from "../renderers/vegaLite";
 import { wavedromRenderer } from "../renderers/wavedrom";
-import type { Renderer, RenderResult } from "../renderers/types";
+import { revokeBlobs } from "./blobs";
 
 const renderers: Record<string, Renderer> = {
   mermaid: mermaidRenderer,
@@ -19,6 +19,27 @@ const renderers: Record<string, Renderer> = {
   "vega-lite": vegaLiteRenderer,
   vl: vegaLiteRenderer,
 };
+
+function resolveDimension(value: number | undefined, fallback: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return fallback;
+  }
+  return Math.ceil(value);
+}
+
+function buildDiagramImageHtml(options: {
+  url: string;
+  width: number;
+  height: number;
+  className: string;
+  alt: string;
+}): string {
+  const { url, width, height, className, alt } = options;
+  // No position:absolute - Safari renders positioned elements at SVG root in foreignObject
+  const wrapStyle = `display:inline-block;width:${width}px;height:${height}px;line-height:0;vertical-align:top;`;
+  const imgStyle = `display:block;width:${width}px;height:${height}px;`;
+  return `<span class="diagram-wrap" style="${wrapStyle}"><img class="${className}" alt="${alt}" src="${url}" width="${width}" height="${height}" style="${imgStyle}"></span>`;
+}
 
 export async function preRenderDiagramFencesToImages(
   mdText: string,
@@ -52,12 +73,18 @@ export async function preRenderDiagramFencesToImages(
       return null;
     }
 
+    const renderContext = {
+      mdText: text,
+      matchIndex: block.start,
+      token: currentToken,
+      formatHint: hint,
+    };
     let rendered: RenderResult | null = null;
     try {
-      rendered = await renderer.render(raw, { mdText: text, matchIndex: block.start, token: currentToken, formatHint: hint });
-    } catch (e) {
+      rendered = await renderer.render(raw, renderContext);
+    } catch (error) {
       const firstLine = raw.split("\n").find((line) => line.trim()) || "";
-      console.warn(`${renderer.name} render failed; skipping block`, firstLine, e);
+      console.warn(`${renderer.name} render failed; skipping block`, firstLine, error);
       out += text.slice(block.start, block.end);
       lastIndex = block.end;
       continue;
@@ -83,14 +110,17 @@ export async function preRenderDiagramFencesToImages(
     const blob = data instanceof Blob ? data : new Blob([data], { type: mime });
     const url = URL.createObjectURL(blob);
     blobUrls.push(url);
-    const finalWidth = Number.isFinite(width) && width > 0 ? Math.ceil(width) : 480;
-    const finalHeight = Number.isFinite(height) && height > 0 ? Math.ceil(height) : 240;
+    const finalWidth = resolveDimension(width, 480);
+    const finalHeight = resolveDimension(height, 240);
     const imgClass = className || "diagram-img";
     const imgAlt = alt || `${renderer.name} diagram`;
-    // No position:absolute - Safari renders positioned elements at SVG root in foreignObject
-    const wrapStyle = `display:inline-block;width:${finalWidth}px;height:${finalHeight}px;line-height:0;vertical-align:top;`;
-    const imgStyle = `display:block;width:${finalWidth}px;height:${finalHeight}px;`;
-    const imgHtml = `<span class="diagram-wrap" style="${wrapStyle}"><img class="${imgClass}" alt="${imgAlt}" src="${url}" width="${finalWidth}" height="${finalHeight}" style="${imgStyle}"></span>`;
+    const imgHtml = buildDiagramImageHtml({
+      url,
+      width: finalWidth,
+      height: finalHeight,
+      className: imgClass,
+      alt: imgAlt,
+    });
     if (listCtx.isList) {
       const inlineOut = appendInlineToLastListItem(out, imgHtml);
       if (inlineOut !== null) {

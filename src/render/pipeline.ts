@@ -52,6 +52,13 @@ export function createRenderPipeline(deps: RenderPipelineDeps): RenderPipeline {
   let pending = 0;
   let activeBlobUrls: string[] = [];
 
+  function highlightSvg(svg: Element): void {
+    fixSafariForeignObjectParagraphs(svg);
+    if (window.Prism) {
+      window.Prism.highlightAllUnder(svg);
+    }
+  }
+
   function handleFirstRender(): void {
     if (!renderedOnce) {
       renderedOnce = true;
@@ -68,6 +75,12 @@ export function createRenderPipeline(deps: RenderPipelineDeps): RenderPipeline {
     }
   }
 
+  function handleRenderError(error: unknown): void {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Render failed:", error);
+    alert("Render error: " + message);
+  }
+
   async function render(mdText: string): Promise<void> {
     const text = (mdText || "").trim();
     if (!text) return;
@@ -77,7 +90,7 @@ export function createRenderPipeline(deps: RenderPipelineDeps): RenderPipeline {
       return token === pending;
     }
 
-    try {
+    const run = async (): Promise<void> => {
       const normalized = markmapNormalize(text);
       const langNormalized = normalizeFenceLang(normalized);
       const mathPre = await preRenderMathToImages(langNormalized, shouldContinue);
@@ -97,10 +110,7 @@ export function createRenderPipeline(deps: RenderPipelineDeps): RenderPipeline {
 
       const svg = document.querySelector("#mindmap");
       if (svg) {
-        fixSafariForeignObjectParagraphs(svg);
-        if (window.Prism) {
-          window.Prism.highlightAllUnder(svg);
-        }
+        highlightSvg(svg);
       }
 
       if (hasImages && svg) {
@@ -109,19 +119,14 @@ export function createRenderPipeline(deps: RenderPipelineDeps): RenderPipeline {
         await mm.setData(root);
         await nextFrames(1);
         if (!shouldContinue()) return;
-        fixSafariForeignObjectParagraphs(svg);
-        if (window.Prism) {
-          window.Prism.highlightAllUnder(svg);
-        }
+        highlightSvg(svg);
       }
 
       mm.fit();
       handleFirstRender();
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : String(e);
-      console.error("Render failed:", e);
-      alert("Render error: " + message);
-    }
+    };
+
+    return run().catch(handleRenderError);
   }
 
   return { render };

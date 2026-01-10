@@ -1,3 +1,6 @@
+const LIST_ITEM_RE = /^\s*(?:[-*+]\s+|\d+\.\s+)/;
+const FULL_LIST_ITEM_RE = /^\s*(?:[-*+]\s+|\d+\.\s+)[^\n]*$/;
+
 export function computeSafeIndent(indent: string, mdText: string, matchIndex: number): string {
   if (indent.length < 4) return indent;
   const before = mdText.slice(0, matchIndex);
@@ -5,7 +8,7 @@ export function computeSafeIndent(indent: string, mdText: string, matchIndex: nu
   for (let k = lines.length - 1; k >= 0; k--) {
     const line = lines[k];
     if (!line.trim()) continue;
-    if (/^\s*([-*+]\s+|\d+\.\s+)/.test(line)) return indent;
+    if (LIST_ITEM_RE.test(line)) return indent;
     break;
   }
   return indent.slice(0, 3);
@@ -43,12 +46,12 @@ export function appendInlineToLastListItem(out: string, html: string): string | 
       idx = out.lastIndexOf("\n", idx - 1);
       continue;
     }
-    if (/^\s*(?:[-*+]\s+|\d+\.\s+)[^\n]*$/.test(line)) {
+    if (FULL_LIST_ITEM_RE.test(line)) {
       return out.slice(0, idx + 1) + line + " " + html;
     }
     return null;
   }
-  if (/^\s*(?:[-*+]\s+|\d+\.\s+)[^\n]*$/.test(out)) {
+  if (FULL_LIST_ITEM_RE.test(out)) {
     return out + " " + html;
   }
   return null;

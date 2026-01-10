@@ -14,27 +14,36 @@ export function looksLikeMarkdown(s: string): boolean {
   );
 }
 
-export function clipboardToMarkmapMdFromDataTransfer(dt: DataTransfer | null, turndownService: TurndownLike): string {
+function normalizeHtmlToMarkdown(html: string, turndownService: TurndownLike): string | null {
+  try {
+    const converted = turndownService.turndown(html);
+    const normalized = markmapNormalize(converted);
+    return normalized.trim() ? normalized : null;
+  } catch (error) {
+    console.warn("Turndown failed; fallback to plain", error);
+    return null;
+  }
+}
+
+export function clipboardToMarkmapMdFromDataTransfer(
+  dt: DataTransfer | null,
+  turndownService: TurndownLike
+): string {
   const html = dt?.getData("text/html") || "";
   const plain = dt?.getData("text/plain") || "";
 
   if (looksLikeMarkdown(plain)) return markmapNormalize(plain);
 
   if (html && html.trim()) {
-    try {
-      const converted = turndownService.turndown(html);
-      const normalized = markmapNormalize(converted);
-      if (normalized.trim()) return normalized;
-    } catch (e) {
-      console.warn("Turndown failed; fallback to plain", e);
-    }
+    const normalized = normalizeHtmlToMarkdown(html, turndownService);
+    if (normalized) return normalized;
   }
   return markmapNormalize(plain);
 }
 
 export async function getPasteTextFallback(): Promise<string> {
-  try { return (await navigator.clipboard.readText()) || ""; }
-  catch { return ""; }
+  if (!navigator.clipboard?.readText) return "";
+  return navigator.clipboard.readText().then((text) => text || "").catch(() => "");
 }
 
 export async function getPasteMarkdown(
@@ -54,7 +63,7 @@ export function applyPasteText(
   pasteEl: HTMLTextAreaElement,
   onRender: (value: string) => void,
   replaceAll = true
-) {
+): void {
   if (!mdText.trim()) return;
 
   if (replaceAll) {
@@ -62,8 +71,11 @@ export function applyPasteText(
   } else {
     const start = pasteEl.selectionStart ?? pasteEl.value.length;
     const end = pasteEl.selectionEnd ?? start;
-    try { pasteEl.setRangeText(mdText, start, end, "end"); }
-    catch { pasteEl.value += mdText; }
+    try {
+      pasteEl.setRangeText(mdText, start, end, "end");
+    } catch {
+      pasteEl.value += mdText;
+    }
   }
   queueMicrotask(() => onRender(pasteEl.value));
 }

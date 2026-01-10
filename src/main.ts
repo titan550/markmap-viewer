@@ -211,16 +211,23 @@ const historyApi = initHistoryModal({
 setupPrompt(copyPromptBtn);
 setupExampleButton(exampleBtn, pasteEl, render);
 
-pasteClipboardBtn.addEventListener("click", async () => {
-  try {
-    const text = await navigator.clipboard.readText();
-    if (text) {
-      applyPasteText(text, pasteEl, render, true);
-    }
-  } catch {
+pasteClipboardBtn.addEventListener("click", () => {
+  if (!navigator.clipboard?.readText) {
     pasteEl.focus();
     pasteEl.select();
+    return;
   }
+  navigator.clipboard
+    .readText()
+    .then((text) => {
+      if (text) {
+        applyPasteText(text, pasteEl, render, true);
+      }
+    })
+    .catch(() => {
+      pasteEl.focus();
+      pasteEl.select();
+    });
 });
 
 function setAutofixFeedback(label: string): void {

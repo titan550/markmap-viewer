@@ -9,7 +9,7 @@ document.body.appendChild(wavedromScratch);
 
 export const wavedromRenderer: Renderer = {
   name: "WaveDrom",
-  render: async (src) => {
+  async render(src) {
     // Known limitation: WaveDrom parsing expects JSON5-ish syntax (via JSON5 parser).
     if (!window.JSON5?.parse) throw new Error("JSON5 parser unavailable");
     if (!window.WaveDrom?.ProcessAll) throw new Error("WaveDrom is not available");

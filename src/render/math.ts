@@ -35,10 +35,15 @@ export async function preRenderMathToImages(
 ): Promise<{ mdOut: string } | null> {
   const mathJax = window.MathJax;
   if (!mathJax?.tex2svg) return { mdOut: mdText };
-  if (mathJax?.startup?.promise) {
-    try { await mathJax.startup.promise; } catch { /* ignore MathJax startup errors */ }
+  const mathJaxApi = mathJax;
+  const startupReady = mathJaxApi.startup?.promise;
+  if (startupReady) {
+    await startupReady.catch(() => undefined);
   }
-  try { if (document.fonts?.ready) await document.fonts.ready; } catch { /* ignore font readiness errors */ }
+  const fontsReady = document.fonts?.ready;
+  if (fontsReady) {
+    await fontsReady.catch(() => undefined);
+  }
   if (!shouldContinue()) return null;
 
   let out = "";
@@ -49,23 +54,31 @@ export async function preRenderMathToImages(
   let inInlineCode = false;
   let inlineCodeTicks = 0;
 
-  const isLineStart = (pos: number) => pos === 0 || mdText[pos - 1] === "\n";
-  const readLine = (pos: number) => {
+  function isLineStart(pos: number): boolean {
+    return pos === 0 || mdText[pos - 1] === "\n";
+  }
+
+  function readLine(pos: number): { text: string; end: number } {
     const end = mdText.indexOf("\n", pos);
     return { text: end === -1 ? mdText.slice(pos) : mdText.slice(pos, end), end: end === -1 ? mdText.length : end + 1 };
-  };
+  }
 
-  const countTickRun = (pos: number) => {
+  function countTickRun(pos: number): number {
     let n = 0;
     while (mdText[pos + n] === "`") n += 1;
     return n;
-  };
+  }
 
-  const renderMathImg = async (expr: string, displayMode: boolean, indent: string, matchIndex: number) => {
+  async function renderMathImg(
+    expr: string,
+    displayMode: boolean,
+    indent: string,
+    matchIndex: number
+  ): Promise<string | null> {
     if (!displayMode && !shouldRenderInlineMath(expr)) return null;
     let svg = "";
     try {
-      const svgNode = mathJax.tex2svg(expr, { display: displayMode });
+      const svgNode = mathJaxApi.tex2svg(expr, { display: displayMode });
       const svgEl = svgNode?.querySelector?.("svg");
       svg = svgEl ? svgEl.outerHTML : "";
     } catch (e) {
@@ -101,16 +114,16 @@ export async function preRenderMathToImages(
       return `${safeIndent}- ${img}`;
     }
     return img;
-  };
+  }
 
-  const findClosingDollar = (start: number, isDouble: boolean) => {
+  function findClosingDollar(start: number, isDouble: boolean): number {
     const needle = isDouble ? "$$" : "$";
     for (let pos = start; pos < mdText.length; pos++) {
       if (mdText[pos] === "\\") { pos += 1; continue; }
       if (mdText.startsWith(needle, pos)) return pos;
     }
     return -1;
-  };
+  }
 
   while (i < mdText.length) {
     if (!shouldContinue()) return null;

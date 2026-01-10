@@ -4,7 +4,7 @@ import type { VizInstance } from "../types/vendors";
 
 let vizPromise: Promise<VizInstance> | null = null;
 
-function getViz() {
+function getViz(): Promise<VizInstance> {
   if (!window.Viz?.instance) throw new Error("Viz.js is not available");
   vizPromise ??= window.Viz.instance();
   return vizPromise;
@@ -27,7 +27,7 @@ function stripFirstDirective(src: string, re: RegExp): { value: string | null; b
 
 export const dotRenderer: Renderer = {
   name: "DOT",
-  render: async (src) => {
+  async render(src) {
     const { value: engine, body } = stripFirstDirective(src, /^\s*(?:\/\/|#)\s*engine:\s*([A-Za-z0-9_-]+)/i);
     const viz = await getViz();
     const svgEl = viz.renderSVGElement(body, engine ? { engine } : undefined);
